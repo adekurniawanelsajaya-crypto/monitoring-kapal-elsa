@@ -356,7 +356,7 @@ Dashboard
    
     let db;
 
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
 
     db = window.supabase;
 
@@ -365,7 +365,26 @@ window.addEventListener('load', () => {
         return;
     }
 
-    loadTableData();
+    if (typeof loadPDFTemplate === "function") {
+        try {
+            await loadPDFTemplate();
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    if (sessionStorage.getItem("isLoggedIn") === "true") {
+
+        document.getElementById("login-overlay")
+        .style.display = "none";
+
+        loadTableData();
+
+        setInterval(() => {
+            loadTableData();
+        }, 5000);
+
+    }
 });
 
     let currentPage = 1;
@@ -1145,24 +1164,5 @@ element.style.background = '#ffffff';
         }
     }
 
-    // RUNNING TIMING
-    // RUNNING TIMING - VERSI AMAN (ANTI MACET)
-    window.onload = function() {
-
-    if (typeof loadPDFTemplate === "function") {
-        try {
-            loadPDFTemplate();
-        } catch(e) {
-            console.error(e);
-        }
-    }
-
-    if (sessionStorage.getItem("isLoggedIn") === "true") {
-
-        document.getElementById("login-overlay")
-        .style.display = "none";
-
-        loadTableData();
-    }
-};
+    
 </script>

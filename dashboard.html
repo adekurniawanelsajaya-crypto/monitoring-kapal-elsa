@@ -336,6 +336,10 @@ window.addEventListener('load', () => {
     }
 
     loadFirebaseData();
+    
+    setInterval(() => {
+    loadFirebaseData();
+    }, 5000);
 });
     // --- 1. FUNGSI UPDATE TANGGAL & STATISTIK (EXISTING) ---
     function updateDate() {
@@ -1020,6 +1024,10 @@ async function deleteRow(id) {
         alert("Data berhasil dihapus");
 
         loadFirebaseData();
+
+        setInterval(() => {
+        loadFirebaseData();
+        }, 5000);
     }
 }
 // --- 5.6 FUNGSI SIMPAN & UPDATE DATA (KONEKSI KE BACKEND) ---
