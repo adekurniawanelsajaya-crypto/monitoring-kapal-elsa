@@ -703,7 +703,7 @@ window.addEventListener('load', async () => {
             try {
                 const docID = namaKapal.replace(/[.#$/[\]]/g, "_");
                 if (typeof db !== "undefined") {
-                   db = window.supabase('data_rekap_bar/' + docID).once('value', (snapshot) => {
+                  const db = window.supabase;('data_rekap_bar/' + docID).once('value', (snapshot) => {
                         const kapalSaatIni = dataKapalAktif ? (dataKapalAktif.vessel || dataKapalAktif.kapal || "-") : "";
                         if (namaKapal !== kapalSaatIni) return;
 
