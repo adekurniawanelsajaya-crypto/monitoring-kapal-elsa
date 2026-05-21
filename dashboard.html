@@ -324,28 +324,12 @@
 // Inisialisasi Firebase (Gunakan logika ini agar tidak bentrok)
 // Firebase dimatikan
 
-let db;
-
-window.addEventListener('load', () => {
-
-    db = window.supabase;
-
-    if(!db){
-        console.error("Supabase belum connect");
-        return;
-    }
-
-    loadFirebaseData();
-    
-    setInterval(() => {
-    loadFirebaseData();
-    }, 5000);
-});
+  
     // --- 1. FUNGSI UPDATE TANGGAL & STATISTIK (EXISTING) ---
     function updateDate() {
         const now = new Date();
         const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-        const formattedDate = now.toLocaleDateString('id-ID', options);
+        db = window.supabase; const formattedDate = now.toLocaleDateString('id-ID', options);
         const dateInput = document.getElementById('currentDate');
         if (dateInput) dateInput.value = formattedDate;
     }
@@ -758,34 +742,68 @@ let currentPage = 1;
 // --- FUNGSI UTAMA UNTUK TABEL & TOTAL ---
 // --- UPDATE FUNGSI UTAMA UNTUK TABEL & TOTAL ---
 function setTableLimit(limit) {
+
     if (!limit) {
-        const select = document.querySelector('select');
-        limit = select ? parseInt(select.value) : 10;
+
+        const select =
+        document.querySelector('select');
+
+        limit =
+        select ? parseInt(select.value) : 10;
+
     }
 
-    const tbody = document.querySelector("tbody");
+    const tbody =
+    document.querySelector("tbody");
+
     if (!tbody) return;
-    
-    const rows = Array.from(tbody.querySelectorAll("tr"));
+
+    const rows =
+    Array.from(
+    tbody.querySelectorAll("tr")
+    ).filter(row =>
+        row.dataset.visible !== "false"
+    );
+
     const totalData = rows.length;
 
-    const startIndex = (currentPage - 1) * limit;
-    const endIndex = startIndex + limit;
+    const startIndex =
+    (currentPage - 1) * limit;
+
+    const endIndex =
+    startIndex + limit;
 
     rows.forEach((row, index) => {
-        // Hanya tampilkan baris sesuai jangkauan halaman
-        if (index >= startIndex && index < endIndex) {
-            row.style.display = ""; 
+
+        if (
+            index >= startIndex &&
+            index < endIndex
+        ) {
+
+            row.style.display = "";
+
         } else {
-            row.style.display = "none"; 
+
+            row.style.display = "none";
+
         }
+
     });
 
-    // Update info teks: "Showing 1 to 10 of 100 entries"
-    updatePaginationInfo(totalData > 0 ? startIndex + 1 : 0, Math.min(endIndex, totalData), totalData);
-    
-    // Update tombol navigasi
-    renderPaginationButtons(totalData, limit);
+    updatePaginationInfo(
+        totalData > 0
+        ? startIndex + 1
+        : 0,
+
+        Math.min(endIndex, totalData),
+
+        totalData
+    );
+
+    renderPaginationButtons(
+        totalData,
+        limit
+    );
 }
 function renderPaginationButtons(totalData, limit) {
     const paginationContainer = document.querySelector('.pagination-container') || document.querySelector('.flex.space-x-1');
@@ -1004,7 +1022,13 @@ async function loadFirebaseData() {
     });
 
     updateDashboardStats(results);
+
+
+    filterByMonth();
+
+    setTableLimit();
 }
+
 // --- FUNGSI HAPUS DATA DARI FIREBASE ---
 async function deleteRow(id) {
 
@@ -1024,10 +1048,7 @@ async function deleteRow(id) {
         alert("Data berhasil dihapus");
 
         loadFirebaseData();
-
-        setInterval(() => {
-        loadFirebaseData();
-        }, 5000);
+        
     }
 }
 // --- 5.6 FUNGSI SIMPAN & UPDATE DATA (KONEKSI KE BACKEND) ---
@@ -1112,200 +1133,119 @@ function editRow(data) {
     document.getElementById("inputModal").style.display = "block";
 }
 
-    window.addEventListener('load', () => {
-    const buttons = document.querySelectorAll('button');
-    buttons.forEach(btn => {
-        const txt = btn.innerText.trim();
-    
-        // Perbaikan Hubungan Tombol Export Excel
-        if (txt.toLowerCase().includes('export')) {
-            btn.onclick = (e) => {
-                e.preventDefault();
-                exportToExcel();
-            };
-        }
-        
-        // Hubungkan Tombol Cetak PDF
-        if (txt.toLowerCase().includes('lihat pdf') || txt.toLowerCase().includes('cetak')) { 
-            btn.innerHTML = '<i class="fas fa-file-pdf"></i> Lihat PDF';
-            btn.onclick = (e) => {
-                e.preventDefault();
-                prepareAndPrint();
-            };
-        }
+  window.addEventListener('load', async () => {
 
-        // Hubungkan Tombol Kolom
-        if (txt.toLowerCase().includes('kolom')) {
-            btn.onclick = (e) => {
-                e.preventDefault();
-                toggleColumnMenu(e);
-            };
-        }
-    });
-    
-    const select = document.querySelector('select');
-    if (select) {
-        select.onchange = (e) => setTableLimit(parseInt(e.target.value));
-        // Beri sedikit delay agar data firebase sempat masuk dulu sebelum dilimit
-        setTimeout(() => setTableLimit(parseInt(select.value) || 10), 1000);
+    db = window.supabase;
+
+    if(!db){
+        console.error("Supabase belum connect");
+        return;
     }
 
-    const searchInput = document.querySelector('input[placeholder="Cari kapal..."]');
-    if (searchInput) {
-        searchInput.addEventListener('keyup', searchVessel);
-    }
+    updateDate();
 
-    window.onclick = (e) => {
-        const menu = document.getElementById('column-menu');
-        if (menu && !e.target.closest('#column-menu') && !btnTeks(e.target, 'Kolom')) {
-            menu.style.display = 'none';
+    // =========================
+    // LOAD DATA AWAL
+    // =========================
+
+    await loadFirebaseData();
+
+    // =========================
+    // REALTIME SUPABASE
+    // =========================
+
+    db
+    .channel('realtime-operasional')
+
+    .on(
+        'postgres_changes',
+        {
+            event: '*',
+            schema: 'public',
+            table: 'operasional_kapal'
+        },
+
+        async (payload) => {
+
+            console.log(
+                'Realtime Update:',
+                payload
+            );
+
+            await loadFirebaseData();
+
         }
-    };
+    )
+
+    .subscribe();
+
 });
-   // Jalankan fungsi saat halaman dibuka
-window.onload = function() {
-    // 1. Ambil data yang tersimpan di memori browser (localStorage)
-    const savedStart = localStorage.getItem('filterStart') || "2026-01";
-    const savedEnd = localStorage.getItem('filterEnd') || "2026-05";
 
-    // 2. Masukkan kembali ke input bulan
-    document.getElementById('startMonth').value = savedStart;
-    document.getElementById('endMonth').value = savedEnd;
 
-    // 3. Jalankan filter pertama kali
-    filterByMonth();
-};
-
-// Memastikan script berjalan setelah HTML selesai dimuat
-document.addEventListener('DOMContentLoaded', function() {
-    // Jalankan filter saat pertama kali buka
-    const savedStart = localStorage.getItem('filterStart') || "2026-05";
-    const savedEnd = localStorage.getItem('filterEnd') || "2026-07";
-    
-    if(document.getElementById('startMonth')) document.getElementById('startMonth').value = savedStart;
-    if(document.getElementById('endMonth')) document.getElementById('endMonth').value = savedEnd;
-
-    filterByMonth(); 
-});
+// =========================
+// FILTER BULAN
+// =========================
 
 function filterByMonth() {
-    const startVal = document.getElementById('startMonth').value;
-    const endVal = document.getElementById('endMonth').value;
 
-    localStorage.setItem('filterStart', startVal);
-    localStorage.setItem('filterEnd', endVal);
+    const startVal =
+    document.getElementById('startMonth').value;
 
-    const rows = document.querySelectorAll('#table-body tr');
-    
-    // Inisialisasi awal (Wajib 0 agar jika data kosong, tampilan ikut 0)
-    let totalKapal = 0;
-    let totalBongkarMT = 0;
-    let totalMuatMT = 0;
-    let latestDate = null;
+    const endVal =
+    document.getElementById('endMonth').value;
+
+    const rows =
+    document.querySelectorAll('#table-body tr');
 
     rows.forEach(row => {
-        const dateCell = row.cells[6]; // Index 6: COMMENCED TIME
-        if (dateCell) {
-            let dateText = dateCell.innerText.trim();
-            if (dateText === "" || dateText === "-") {
-                row.style.display = "none";
-                return;
-            }
 
-            // 1. NORMALISASI TANGGAL
-            let cleanDateText = dateText.replace('T', ' '); 
-            let rowYM = cleanDateText.substring(0, 7); 
-            
-            if (dateText.includes('/')) {
-                const p = dateText.split('/');
-                rowYM = `${p[2].split(' ')[0]}-${p[1].padStart(2, '0')}`;
-            }
+        const dateCell = row.cells[6];
 
-            // 2. LOGIKA FILTER
-            if (rowYM >= startVal && rowYM <= endVal) {
-                row.style.display = "";
-                totalKapal++;
+        if (!dateCell) return;
 
-                // 3. MEMBERSIHKAN ANGKA (Support format "2.300")
-                let textBongkar = row.cells[9]?.innerText || "0";
-                let textMuat = row.cells[12]?.innerText || "0";
+        let dateText =
+        dateCell.innerText.trim();
 
-                const bVal = parseFloat(
-                textBongkar
-                .replace(/\./g, '')
-                .replace(',', '.')
-                 ) || 0;
+        if (!dateText || dateText === "-") {
 
-                const mVal = parseFloat(
-                textMuat
-                .replace(/\./g, '')
-                .replace(',', '.')
-                ) || 0;
-                
-                totalBongkarMT += bVal;
-                totalMuatMT += mVal;
+            row.dataset.visible = "false";
 
-                // 4. MENCARI UPDATE TERAKHIR
-                let currentDataDate = new Date(cleanDateText.replace(/-/g, "/")); 
-                if (!isNaN(currentDataDate.getTime())) {
-                    if (!latestDate || currentDataDate > latestDate) {
-                        latestDate = currentDataDate;
-                    }
-                }
-            } else {
-                row.style.display = "none";
-            }
+            return;
         }
+
+        let rowYM =
+        dateText.substring(0, 7);
+
+        if (rowYM >= startVal &&
+            rowYM <= endVal) {
+
+            row.dataset.visible = "true";
+
+        } else {
+
+            row.dataset.visible = "false";
+
+        }
+
     });
 
-    // --- BAGIAN UPDATE TAMPILAN (PENGIRIMAN DATA KE HTML) ---
-    const formatIndo = (num) => num.toLocaleString('id-ID');
-
-    // Update Card Statistik Utama (Reset ke 0 jika data tidak ada)
-    if(document.getElementById('total-kapal')) {
-        document.getElementById('total-kapal').innerText = totalKapal;
-    }
-    if(document.getElementById('total-bongkar')) {
-        document.getElementById('total-bongkar').innerText = formatIndo(totalBongkarMT);
-    }
-    if(document.getElementById('total-muat')) {
-        document.getElementById('total-muat').innerText = formatIndo(totalMuatMT);
-    }
-    if(document.getElementById('total-keseluruhan')) {
-        document.getElementById('total-keseluruhan').innerText = formatIndo(totalBongkarMT + totalMuatMT);
-    }
-
-    // Update Card Perbandingan Volume & Donut Chart
-    if(document.getElementById('total-mt-volume')) {
-        document.getElementById('total-mt-volume').innerText = formatIndo(totalBongkarMT + totalMuatMT);
-    }
-    if(document.getElementById('vol-bongkar-label')) {
-        document.getElementById('vol-bongkar-label').innerText = formatIndo(totalBongkarMT);
-    }
-    if(document.getElementById('vol-muat-label')) {
-        document.getElementById('vol-muat-label').innerText = formatIndo(totalMuatMT);
-    }
-
-    // Panggil fungsi render chart agar Donut ikut update/reset
-    if (typeof renderDonutChart === "function") {
-        renderDonutChart(totalBongkarMT, totalMuatMT);
-    }
-
-    // Update Label Update Terakhir (Menghilangkan Garis Datar jika data ada)
-    const elUpdate = document.getElementById('last-update-label');
-    if (elUpdate) {
-        if (latestDate && totalKapal > 0) {
-            const options = { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' };
-            elUpdate.innerText = `Update Terakhir: ${latestDate.toLocaleDateString('id-ID', options)}`;
-        } else {
-            elUpdate.innerText = "Update Terakhir: -";
-        }
-    }
+    setTableLimit();
 }
-// Fungsi pembantu agar deteksi tombol lebih aman
-function btnTeks(el, kata) {
-    return el.innerText && el.innerText.toLowerCase().includes(kata.toLowerCase());
-}
+
+
+// =========================
+// EVENT FILTER
+// =========================
+
+document.getElementById(
+'startMonth'
+).onchange = filterByMonth;
+
+document.getElementById(
+'endMonth'
+).onchange = filterByMonth;
+
+
 </script>
 </body>
 </html>
