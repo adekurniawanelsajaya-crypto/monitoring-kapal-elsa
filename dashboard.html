@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Kapal - Dashboard Operasional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script type="module" src="supabase.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #f3f4f6; font-family: 'Inter', sans-serif; }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .table-header { background-color: #f8fafc; }
+        /* Styling untuk border tabel yang lebih tegas seperti di foto */
+        table, th, td { border: 1px solid #e2e8f0 !important; }
+        th { vertical-align: middle !important; }
+
+        /* --- TAMBAHAN UNTUK MENU TAMPILKAN KOLOM --- */
+        #column-menu {
+            display: none;
+            position: absolute;
+            background: rgb(114, 94, 94);
+            border: 1px solid #87919c;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-height: 350px;
+            overflow-y: auto;
+            min-width: 200px;
+        }
+        #column-menu label {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            margin-bottom: 2px;
+            cursor: pointer;
+            color: #abc8f0;
+            font-size: 13px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        #column-menu label:hover {
+            background-color: #7db6f0;
+        }
+        #column-menu input {
+            margin-right: 10px;
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <!-- ==================== HALAMAN LOGIN (OVERLAY) ==================== -->
+    <div id="login-overlay" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-[9999]">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-gray-100 transition-all duration-350">
+            <!-- Logo & Judul -->
+            <div class="text-center mb-8">
+                <div class="flex justify-center mb-4">
+                    <img src="https://lh3.googleusercontent.com/d/18QlLis9w5VuRMF4qBlzenTu1KTBsRy8v" 
+                         alt="Logo Elsa Jaya" 
+                         class="h-16 object-contain">
+                </div>
+                <h2 class="text-xl font-bold text-gray-800">Sistem Monitoring Kapal</h2>
+                <p class="text-xs text-gray-400 mt-1">PT PBM ELSA JAYA</p>
+            </div>
+
+            <!-- Form Login -->
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
+                <!-- Username -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-2">Username</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                            <i class="fas fa-user text-sm"></i>
+                        </span>
+                        <input type="text" id="username" required autocomplete="off"
+                               class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-700" 
+                               placeholder="Masukkan username">
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-2">Password</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                            <i class="fas fa-lock text-sm"></i>
+                        </span>
+                        <input type="password" id="password" required
+                               class="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-700" 
+                               placeholder="••••••••">
+                        <span onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer text-gray-400 hover:text-gray-600">
+                            <i id="password-icon" class="fas fa-eye text-sm"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                <div id="error-message" class="hidden text-xs text-red-500 bg-red-50 p-2.5 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>Username atau Password salah!</span>
+                </div>
+
+                <!-- Tombol Masuk -->
+                <button type="submit" 
+                        class="w-full bg-blue-950 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-900 transition duration-200 shadow-md flex items-center justify-center space-x-2">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Masuk ke Dashboard</span>
+                </button>
+            </form>
+        </div>
+    </div>
+    <!-- ==================== END HALAMAN LOGIN ==================== -->
+
+    <!-- Container Utama tetap menggunakan struktur flex justify-between -->
+<div class="flex justify-between items-center w-full mb-6">
+    <div class="flex items-center space-x-3">
+        <div class="bg-blue-900 p-2 rounded-lg text-white">
+            <i class="fas fa-ship fa-lg"></i>
+        </div>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Monitoring Kapal PT PBM ELSA JAYA</h1>
+            <p class="text-sm text-gray-500">Dashboard Operasional Bongkar Muat Kapal</p>
+        </div>
+    </div>
+    <div class="flex space-x-2 items-center">
+        <div class="relative">
+            <input type="text" id="currentDate" class="border rounded-lg px-4 py-2 text-sm focus:outline-none w-56" readonly>
+            <i class="fas fa-calendar absolute right-3 top-3 text-gray-400"></i>
+        </div>
+        <!-- Wadah Logo Elsa Jaya -->
+        <div class="flex items-center justify-end" style="height: 50px; min-width: 120px;">
+    <!-- Link Direct dari Google Drive Anda -->
+             <img src="https://lh3.googleusercontent.com/d/18QlLis9w5VuRMF4qBlzenTu1KTBsRy8v" 
+                alt="Logo Elsa Jaya" 
+                style="height: 100%; width: auto; object-fit: contain;">
+        </div>
+    </div>
+</div>
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+    <div class="bg-blue-500 rounded-xl p-4 text-white card-shadow relative overflow-hidden">
+        <div class="flex justify-between items-start mb-2">
+            <div class="bg-white/20 p-2 rounded-lg"><i class="fas fa-ship"></i></div>
+            <div class="text-right">
+                <p class="text-xs opacity-80 uppercase font-bold text-[10px]">Total Kapal</p>
+                <h2 id="total-kapal" class="text-3xl font-bold">0</h2>
+                <p class="text-xs">Kapal</p>
+            </div>
+        </div>
+        <div class="text-[10px] mt-4"><i class="fas fa-arrow-up"></i> 12% dari kemarin</div>
+    </div>
+
+    <div class="bg-emerald-500 rounded-xl p-4 text-white card-shadow">
+        <div class="flex justify-between items-start mb-2">
+            <div class="bg-white/20 p-2 rounded-lg"><i class="fas fa-upload"></i></div>
+            <div class="text-right">
+                <p class="text-xs opacity-80 uppercase font-bold text-[10px]">Muat</p>
+                <h2 id="total-muat" class="text-3xl font-bold">0</h2>
+                <p class="text-xs">Metric Ton</p>
+            </div>
+        </div>
+        <div class="text-[10px] mt-4"><i class="fas fa-arrow-up"></i> 18% dari kemarin</div>
+    </div>
+
+    <div class="bg-orange-500 rounded-xl p-4 text-white card-shadow">
+        <div class="flex justify-between items-start mb-2">
+            <div class="bg-white/20 p-2 rounded-lg"><i class="fas fa-download"></i></div>
+            <div class="text-right">
+                <p class="text-xs opacity-80 uppercase font-bold text-[10px]">Bongkar</p>
+                <h2 id="total-bongkar" class="text-3xl font-bold">0</h2>
+                <p class="text-xs">Metric Ton</p>
+            </div>
+        </div>
+       <div class="text-[10px] mt-4">
+        <i class="fas fa-arrow-up"></i>
+        <span id="label-persen-otomatis">
+        </span> <!-- Siapkan tempat kosong untuk fungsi nanti -->
+    </div>
+    </div>
+
+    <div class="bg-purple-600 rounded-xl p-4 text-white card-shadow">
+        <div class="flex justify-between items-start mb-2">
+            <div class="bg-white/20 p-2 rounded-lg"><i class="fas fa-sync"></i></div>
+            <div class="text-right">
+                <p class="text-xs opacity-80 uppercase font-bold text-[10px]">Total Bongkar & Muat</p>
+                <h2 id="total-keseluruhan" class="text-3xl font-bold">0</h2>
+                <p class="text-xs">Metric Ton</p>
+            </div>
+        </div>
+        <div class="text-[10px] mt-4">
+        <i class="fas fa-arrow-up"></i>
+        <span id="label-persen-otomatis"></span> <!-- Siapkan tempat kosong untuk fungsi nanti -->
+    </div>
+</div>
+       <!-- Papan Peringatan Safety -->
+<div class="p-4 bg-white rounded-lg shadow-md border-l-4 border-red-500">
+    <h3 class="text-lg font-bold text-gray-700 mb-3"><i class="fas fa-exclamation-triangle text-red-500"></i> STATUS SAFETY</h3>
+    
+    <div class="flex justify-between items-center mb-4">
+        <div>
+            <p class="text-sm text-gray-500">Temuan Belum Selesai</p>
+            <p id="safety-open-count" class="text-4xl font-bold text-red-600">0</p>
+        </div>
+        <div class="text-right">
+            <p class="text-sm text-gray-500">Total Temuan</p>
+            <p id="safety-total-count" class="text-xl font-semibold text-gray-800">0</p>
+        </div>
+    </div>
+
+    <!-- List Singkat Temuan Terakhir -->
+    <div class="text-[11px] bg-gray-50 p-2 rounded">
+        <p class="font-bold text-gray-600 border-b mb-1">Temuan Terbaru:</p>
+        <div id="safety-recent-list" class="text-gray-700">
+            <!-- Isi otomatis dari script -->
+            Belum ada temuan bahaya.
+        </div>
+    </div>
+</div>
+</div>
+
+    <div class="bg-white rounded-xl card-shadow overflow-hidden">
+        <div class="p-4 border-b flex justify-between items-center">
+          <div class="flex items-center space-x-3 text-blue-1000">
+                <i class="fas fa-ship"></i>
+                <h3 class="font-bold uppercase text-sm">Rincian Kapal</h3>
+              </div>
+            <div class="flex items-center space-x-4">
+   <div class="flex items-center space-x-3 bg-gray-50 border px-2 py-1 rounded-lg">
+    <i class="fas fa-calendar-alt text-blue-650 text-[10px]"></i>
+    <div class="flex items-center space-x-3">
+        <input type="month" id="startMonth" min="2020-01" max="2028-12" class="bg-transparent text-[10px] focus:outline-none font-semibold text-gray-600">
+        <span class="text-[10px] text-gray-420">s/d</span>
+        <input type="month" id="endMonth" min="2020-01" max="2028-12" class="bg-transparent text-[10px] focus:outline-none font-semibold text-gray-600">
+    </div>
+</div>
+</div>
+        <div class="flex space-x-2">
+            <button onclick="exportToExcel()" class="text-[10px] border px-3 py-1.5 rounded flex items-center font-semibold text-gray-600 bg-white hover:bg-gray-50 transition">
+                <i class="fas fa-file-excel text-green-600 mr-2"></i> Export Excel
+            </button>
+            <button onclick="toggleColumnMenu(event)" class="text-[10px] border px-3 py-1.5 rounded flex items-center font-semibold text-gray-600 bg-white hover:bg-gray-50 transition">
+                <i class="fas fa-columns text-blue-600 mr-2"></i> Tampilkan Kolom
+            </button>
+        </div>
+    </div>
+</div>
+
+        <div class="p-4 flex justify-between items-center bg-gray-50 text-[11px]">
+            <div>Tampilkan 
+                <select class="border rounded p-1 mx-1">
+                    <option>10</option>
+                </select> data
+            </div>
+            <div class="relative">
+                <input id="searchInput" type="text" placeholder="Cari kapal..." class="border rounded-full pl-8 pr-4 py-1.5 focus:outline-none w-64">
+                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-center text-[10px] border-collapse">
+                <thead class="bg-[#f8fafc] uppercase text-[#64748b] font-bold">
+                    <tr>
+                        <th class="p-2 border" rowspan="3">NO</th>
+                        <th class="p-2 border" rowspan="3" style="min-width: 150px;">VESSEL NAME</th>
+                        <th class="p-2 border" rowspan="3">FLAG</th>
+                        <th class="p-2 border" rowspan="3">DWT / GT / HP</th>
+                        <th class="p-2 border" rowspan="3">SHIP AGENT</th>
+                        <th class="p-2 border" rowspan="3">LAST PORT</th>
+                        <th class="p-2 border" rowspan="3">COMMENCED TIME</th>
+                        <th class="p-1 border" colspan="6">ACTIVITY</th>
+                        <th class="p-2 border" rowspan="3">COMPLETED TIME</th>
+                        <th class="p-2 border" rowspan="3">LAMA KEG.<br>(Hari, Jam:mnt)</th>
+                        <th class="p-2 border" rowspan="3">PEL. TUJUAN</th>
+                        <th class="p-2 border" rowspan="3">SHIPPER</th>
+                        <th class="p-2 border" rowspan="3">KET</th>
+                    </tr>
+                    <tr>
+                        <th class="p-1 border" colspan="3">DISCH.</th>
+                        <th class="p-1 border" colspan="3">LOADING</th>
+                    </tr>
+                    <tr class="text-[9px]">
+                        <th class="p-1 border">JENIS</th>
+                        <th class="p-1 border">Quota (MT)</th>
+                        <th class="p-1 border">Jml (Box)</th>
+                        <th class="p-1 border">JENIS</th>
+                        <th class="p-1 border">Quota (MT)</th>
+                        <th class="p-1 border">Jml (Box)</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body" class="text-[#334155]">
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="p-4 flex justify-between items-center text-[11px] text-gray-500 border-t">
+            <p class="pagination-info">Menampilkan 1 sampai 10 dari 24 data</p>
+            <div class="flex space-x-1 pagination-container">
+                <button onclick="changePage(1)" class="px-2 py-1 border rounded hover:bg-gray-100"><i class="fas fa-chevron-left text-[10px]"></i></button>
+                <button onclick="changePage(1)" class="px-3 py-1 bg-blue-600 text-white rounded font-bold">1</button>
+                <button onclick="changePage(2)" class="px-3 py-1 border rounded hover:bg-gray-100">2</button>
+                <button onclick="changePage(3)" class="px-3 py-1 border rounded hover:bg-gray-100">3</button>
+                <button onclick="changePage(2)" class="px-2 py-1 border rounded hover:bg-gray-100"><i class="fas fa-chevron-right text-[10px]"></i></button>
+            </div>
+        </div>
+    </div>
+
+ <script>
+   const firebaseConfig = { 
+  apiKey: "AIzaSyDhJ7Dhx2gWdvYelmWJnpW0VYgWmn9LmpQ",
+  authDomain: "monitoring-kegiatan-elsa-jaya.firebaseapp.com",
+  databaseURL: "https://monitoring-kegiatan-elsa-jaya-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "monitoring-kegiatan-elsa-jaya",
+  storageBucket: "monitoring-kegiatan-elsa-jaya.firebasestorage.app",
+  messagingSenderId: "743410584985",
+  appId: "1:743410584985:web:1cc1583c8cb982be495708",
+  measurementId: "G-SGVC9EEHVR"
+};
+
+// Inisialisasi Firebase (Gunakan logika ini agar tidak bentrok)
+// Firebase dimatikan
+
+let db;
+
+window.addEventListener('load', () => {
+
+    db = window.supabase;
+
+    if(!db){
+        console.error("Supabase belum connect");
+        return;
+    }
+
+    loadFirebaseData();
+});
+    // --- 1. FUNGSI UPDATE TANGGAL & STATISTIK (EXISTING) ---
+    function updateDate() {
+        const now = new Date();
+        const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        const formattedDate = now.toLocaleDateString('id-ID', options);
+        const dateInput = document.getElementById('currentDate');
+        if (dateInput) dateInput.value = formattedDate;
+    }
+
+// Fungsi memproses login sesuai kredensial Anda
+        // Cek status login saat halaman pertama kali dimuat atau di-refresh
+window.addEventListener('DOMContentLoaded', () => {
+    const isLoggedIn = sessionStorage.getItem('loginStatus');
+    if (isLoggedIn === 'success') {
+        // Jika sudah login sukses sebelumnya, langsung sembunyikan form tanpa animasi
+        document.getElementById('login-overlay').classList.add('hidden');
+    }
+});
+
+function handleLogin(event) {
+    event.preventDefault();
+    const userInput = document.getElementById('username').value;
+    const passInput = document.getElementById('password').value;
+    const errorMsg = document.getElementById('error-message');
+    const loginOverlay = document.getElementById('login-overlay');
+
+    // Validasi Kredensial
+    if (userInput === "elsajaya" && passInput === "elsajaya111") {
+        errorMsg.classList.add('hidden');
+        
+        // Simpan status login di Session Storage browser agar tidak hilang saat di-refresh
+        sessionStorage.setItem('loginStatus', 'success');
+
+        // Beri efek transisi menutup layar login
+        loginOverlay.style.opacity = '0';
+        setTimeout(() => {
+            loginOverlay.classList.add('hidden');
+        }, 350);
+    } else {
+        // Tampilkan pesan error jika salah
+        errorMsg.classList.remove('hidden');
+    }
+}
+
+// Fungsi Tampilkan/Sembunyikan password (klik ikon mata)
+function togglePasswordVisibility() {
+    const passwordField = document.getElementById('password');
+    const passwordIcon = document.getElementById('password-icon');
+    if (passwordField.type === "password") {
+        passwordField.type = "text";
+        passwordIcon.classList.remove('fa-eye');
+        passwordIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordField.type = "password";
+        passwordIcon.classList.remove('fa-eye-slash');
+        passwordIcon.classList.add('fa-eye');
+    }
+}
+
+   function updateDashboardStats(dataArray) {
+    if (!dataArray) return;
+
+    const skrg = new Date();
+    const todayStr = skrg.toLocaleDateString('en-CA');
+    const kemarin = new Date();
+    kemarin.setDate(kemarin.getDate() - 1);
+    const yesterdayStr = kemarin.toLocaleDateString('en-CA');
+
+    let totalMuat = 0;
+    let totalBongkar = 0;
+
+    let statsToday = { kapal: 0, muat: 0, bongkar: 0 };
+    let statsYesterday = { kapal: 0, muat: 0, bongkar: 0 };
+
+    dataArray.forEach(data => {
+
+    const muatValue = parseFloat(
+        String(data.load_quota || '0')
+            .replace(',', '.')
+    ) || 0;
+
+    const bongkarValue = parseFloat(
+        String(data.disch_quota || '0')
+            .replace(',', '.')
+    ) || 0;
+
+        const tglCommenced = data.commenced ? String(data.commenced).substring(0, 10) : "";
+
+        totalMuat += muatValue;
+        totalBongkar += bongkarValue;
+
+        if (tglCommenced === todayStr) {
+            statsToday.kapal++;
+            statsToday.muat += muatValue;
+            statsToday.bongkar += bongkarValue;
+        } else if (tglCommenced === yesterdayStr) {
+            statsYesterday.kapal++;
+            statsYesterday.muat += muatValue;
+            statsYesterday.bongkar += bongkarValue;
+        }
+    });
+
+    const grandTotal = totalMuat + totalBongkar;
+
+    const setDisplay = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = formatNumber(value);
+    };
+
+    setDisplay("total-kapal", dataArray.length);
+    setDisplay("total-muat", totalMuat);
+    setDisplay("total-bongkar", totalBongkar);
+
+    const purpleCard = document.querySelector(".bg-purple-600, .bg-purple-500");
+    if (purpleCard) {
+        const elGrandTotal = purpleCard.querySelector(".text-3xl");
+        if (elGrandTotal) elGrandTotal.innerText = formatNumber(grandTotal);
+    }
+
+    // 🔥 FIX PERSENTASE + WARNA
+    const updateLabel = (cardSelector, current, previous) => {
+
+    const card = document.querySelector(cardSelector);
+
+    if (!card) return;
+
+    const labelEl = card.querySelector("span");
+
+    if (!labelEl) return;
+
+    let percent = 0;
+
+    if (previous > 0) {
+
+        percent = ((current - previous) / previous) * 100;
+
+    } else if (current > 0) {
+
+        percent = 100;
+
+    } else if (current === 0 && previous > 0) {
+
+        percent = -100;
+
+    }
+
+    const isNaik = percent >= 0;
+
+    labelEl.innerHTML = `
+        <span class="${isNaik ? 'text-green-200' : 'text-red-200'}">
+            <i class="fas ${isNaik ? 'fa-arrow-up' : 'fa-arrow-down'}"></i>
+            ${percent.toFixed(1)}% dari kemarin
+        </span>
+    `;
+
+};
+    updateLabel(".bg-emerald-500", statsToday.muat, statsYesterday.muat);
+    updateLabel(".bg-orange-500", statsToday.bongkar, statsYesterday.bongkar);
+
+    // 🔥 AUTO UPDATE DONUT (NYAMBUNG KE DATA)
+    updateDonutChart(totalMuat, totalBongkar);
+}
+function updateDonutChart(muatCount, bongkarCount) {
+
+    const total = muatCount + bongkarCount;
+
+    if (total === 0) return;
+
+    const muatPercent = Math.round((muatCount / total) * 100);
+
+    const bongkarPercent = 100 - muatPercent;
+
+    // =========================
+    // UPDATE ANGKA TENGAH
+    // =========================
+    const totalCenter = document.querySelector(".total-chart-center span:first-child");
+
+    if(totalCenter){
+        totalCenter.innerText = formatNumber(total);
+    }
+
+    // =========================
+    // UPDATE DONUT SVG
+    // =========================
+    const circleMuat = document.querySelector("svg circle:first-child");
+
+    const circleBongkar = document.querySelector("svg circle:last-child");
+
+    if(circleMuat && circleBongkar){
+
+        circleMuat.setAttribute(
+            "stroke-dasharray",
+            `${muatPercent}, 100`
+        );
+
+        circleBongkar.setAttribute(
+            "stroke-dasharray",
+            `${bongkarPercent}, 100`
+        );
+
+        circleBongkar.setAttribute(
+            "stroke-dashoffset",
+            `-${muatPercent}`
+        );
+    }
+
+    // =========================
+    // LABEL MUAT
+    // =========================
+    const labelMuat = document.getElementById("label-muat-percent");
+
+    if(labelMuat){
+
+        labelMuat.innerHTML =
+            `${formatNumber(muatCount)}
+            <span class="text-gray-400">
+            (${muatPercent}%)
+            </span>`;
+    }
+
+    // =========================
+    // LABEL BONGKAR
+    // =========================
+    const labelBongkar = document.getElementById("label-bongkar-percent");
+
+    if(labelBongkar){
+
+        labelBongkar.innerHTML =
+            `${formatNumber(bongkarCount)}
+            <span class="text-gray-400">
+            (${bongkarPercent}%)
+            </span>`;
+    }
+
+}
+
+
+// Pasang event agar otomatis update saat bulan diganti
+document.getElementById('startMonth').onchange = filterByMonth;
+document.getElementById('endMonth').onchange = filterByMonth;
+function formatNumber(num) {
+    return new Intl.NumberFormat('id-ID').format(num);
+}
+    // --- 2. FUNGSI EXPORT EXCEL (PERBAIKAN: SUDAH DIHUBUNGKAN KE TOMBOL) ---
+    function exportToExcel() {
+    const table = document.querySelector("table");
+    if (!table) return;
+
+    const wb = XLSX.utils.table_to_book(table, { sheet: "Laporan Operasional" });
+    const ws = wb.Sheets["Laporan Operasional"];
+
+    // --- PERBAIKAN: Melebarkan kolom agar teks panjang tidak hilang ---
+    const wscols = [
+        {wch: 6},  // NO
+        {wch: 35}, // VESSEL NAME (Diperlebar signifikan)
+        {wch: 10}, // FLAG
+        {wch: 20}, // DWT / GT / HP
+        {wch: 25}, // SHIP AGENT
+        {wch: 25}, // LAST PORT
+        {wch: 22}, // COMMENCED TIME
+        {wch: 12}, // ACTIVITY - DISCH - JENIS
+        {wch: 15}, // ACTIVITY - DISCH - QUOTA
+        {wch: 12}, // ACTIVITY - DISCH - JML BOX
+        {wch: 12}, // ACTIVITY - LOADING - JENIS
+        {wch: 15}, // ACTIVITY - LOADING - QUOTA
+        {wch: 12}, // ACTIVITY - LOADING - JML BOX
+        {wch: 22}, // COMPLETED TIME
+        {wch: 20}, // LAMA KEG.
+        {wch: 25}, // PEL. TUJUAN
+        {wch: 25}, // SHIPPER
+        {wch: 20}  // KET/PETUGAS
+    ];
+    ws['!cols'] = wscols;
+
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cell_ref = XLSX.utils.encode_cell({c: C, r: R});
+            if (!ws[cell_ref]) ws[cell_ref] = { t: 's', v: '' };
+            
+            // --- PERBAIKAN: Menambahkan wrapText agar teks melipat ke bawah jika kolom penuh ---
+            ws[cell_ref].s = {
+                border: {
+                    top: { style: "thin" }, bottom: { style: "thin" },
+                    left: { style: "thin" }, right: { style: "thin" }
+                },
+                alignment: { 
+                    vertical: "center", 
+                    horizontal: "center", 
+                    wrapText: true // Sangat penting agar tulisan tidak hilang/terpotong
+                },
+                font: { name: "Arial", sz: 10 }
+            };
+
+            // Warna abu-abu untuk header (baris 0 sampai 2)
+            if (R <= 2) {
+                ws[cell_ref].s.fill = { fgColor: { rgb: "F2F2F2" } };
+                ws[cell_ref].s.font.bold = true;
+            }
+        }
+    }
+    
+    const fileName = `Laporan_PBM_ELSA_JAYA_${new Date().toLocaleDateString('id-ID')}.xlsx`;
+    
+    // Tetap menggunakan struktur asli Anda
+    try { 
+        XLSXStyle.writeFile(wb, fileName); 
+    } catch (e) { 
+        XLSX.writeFile(wb, fileName); 
+    }
+}
+
+function hitungSelisihWaktu(start, end) {
+    if (!start || !end || start === "-" || end === "-") return "-";
+    
+    try {
+        // Membersihkan format tanggal agar bisa dibaca (Menangani spasi atau karakter aneh)
+        const d1 = new Date(start.toString().replace(/-/g, '/'));
+        const d2 = new Date(end.toString().replace(/-/g, '/'));
+        
+        if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return "-";
+
+        const diffMs = d2 - d1; 
+        if (diffMs < 0) return "Cek Tanggal"; 
+
+        const diffDays = Math.floor(diffMs / 86400000);
+        const diffHrs = Math.floor((diffMs % 86400000) / 3600000);
+        const diffMins = Math.round(((diffMs % 86400000) % 3600000) / 60000);
+
+        return `${diffDays} Hari, ${diffHrs}:${diffMins < 10 ? '0' + diffMins : diffMins}`;
+    } catch (e) {
+        return "-";
+    }
+}
+    // --- 3. FUNGSI CETAK PDF (OTOMATIS TAMPILKAN SEMUA DATA) ---
+    function prepareAndPrint() {
+        // Tampilkan semua baris sementara agar data tidak terpotong (Pagination mati sejenak)
+        const rows = document.querySelectorAll("tbody tr");
+        const originalStyles = [];
+        rows.forEach((row, i) => {
+            originalStyles[i] = row.style.display;
+            row.style.display = ""; 
+        });
+
+        window.print();
+
+        // Kembalikan ke tampilan semula (Pagination aktif lagi)
+        setTimeout(() => {
+            rows.forEach((row, i) => {
+                row.style.display = originalStyles[i];
+            });
+        }, 500);
+    }
+
+    // --- 4. FUNGSI TAMPILKAN KOLOM (CHECKLIST) ---
+    function toggleColumnMenu(event) {
+        event.stopPropagation();
+        let menu = document.getElementById('column-menu');
+        if (!menu) {
+            menu = document.createElement('div');
+            menu.id = 'column-menu';
+            document.body.appendChild(menu);
+            const headers = document.querySelectorAll("thead tr:last-child th");
+            headers.forEach((th, index) => {
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="checkbox" checked onchange="toggleSpecificColumn(${index})"> ${th.innerText}`;
+                menu.appendChild(label);
+            });
+        }
+        const rect = event.currentTarget.getBoundingClientRect();
+        menu.style.top = (rect.bottom + window.scrollY) + 'px';
+        menu.style.left = rect.left + 'px';
+        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function toggleSpecificColumn(index) {
+        const table = document.querySelector("table");
+        for (let i = 0; i < table.rows.length; i++) {
+            const cell = table.rows[i].cells[index];
+            if (cell) cell.style.display = (cell.style.display === "none") ? "" : "none";
+        }
+    }
+
+ // --- UPDATE FUNGSI PENCARIAN (Agar Terintegrasi dengan Pagination) ---
+function searchVessel() {
+    const input = document.querySelector('input[placeholder="Cari kapal..."]');
+    if (!input) return;
+    const filter = input.value.toUpperCase();
+    const rows = document.querySelectorAll("tbody tr");
+
+    rows.forEach(row => {
+        const tdVessel = row.getElementsByTagName("td")[1]; // Kolom Vessel Name
+        if (tdVessel) {
+            const txtValue = tdVessel.textContent || tdVessel.innerText;
+            // Jika cocok, berikan class khusus, jika tidak hapus class-nya
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                row.classList.add("search-match");
+            } else {
+                row.classList.remove("search-match");
+                row.style.display = "none"; // Langsung sembunyikan yang tidak cocok
+            }
+        }
+    });
+
+    // Reset ke halaman 1 setiap kali mengetik pencarian baru
+    currentPage = 1;
+    
+    // Jalankan ulang limit tabel agar hasil pencarian yang > 10 baris tetap dipaginasi
+    setTableLimit();
+}
+// 1. Variabel Global untuk menyimpan posisi halaman aktif
+let currentPage = 1;
+// 1. Inisialisasi variabel global
+
+// --- FUNGSI UTAMA UNTUK TABEL & TOTAL ---
+// --- UPDATE FUNGSI UTAMA UNTUK TABEL & TOTAL ---
+function setTableLimit(limit) {
+    if (!limit) {
+        const select = document.querySelector('select');
+        limit = select ? parseInt(select.value) : 10;
+    }
+
+    const tbody = document.querySelector("tbody");
+    if (!tbody) return;
+    
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    const totalData = rows.length;
+
+    const startIndex = (currentPage - 1) * limit;
+    const endIndex = startIndex + limit;
+
+    rows.forEach((row, index) => {
+        // Hanya tampilkan baris sesuai jangkauan halaman
+        if (index >= startIndex && index < endIndex) {
+            row.style.display = ""; 
+        } else {
+            row.style.display = "none"; 
+        }
+    });
+
+    // Update info teks: "Showing 1 to 10 of 100 entries"
+    updatePaginationInfo(totalData > 0 ? startIndex + 1 : 0, Math.min(endIndex, totalData), totalData);
+    
+    // Update tombol navigasi
+    renderPaginationButtons(totalData, limit);
+}
+function renderPaginationButtons(totalData, limit) {
+    const paginationContainer = document.querySelector('.pagination-container') || document.querySelector('.flex.space-x-1');
+    if (!paginationContainer) return;
+
+    const totalPages = Math.ceil(totalData / limit);
+    let html = '';
+
+    // Tombol Previous
+    html += `<button onclick="changePage(${currentPage > 1 ? currentPage - 1 : 1})" class="px-3 py-1 border rounded-md ${currentPage === 1 ? 'opacity-50' : 'hover:bg-gray-100'}"><</button>`;
+
+    // Tampilkan maksimal 5 tombol halaman agar tidak memanjang
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + 4);
+    if (end - start < 4) start = Math.max(1, end - 4);
+
+    for (let i = start; i <= end; i++) {
+        const activeClass = i === currentPage ? "bg-blue-600 text-white font-bold" : "bg-white text-gray-700 hover:bg-gray-100";
+        html += `<button onclick="changePage(${i})" class="px-3 py-1 border rounded-md mx-1 ${activeClass}">${i}</button>`;
+    }
+
+    // Tombol Next
+    html += `<button onclick="changePage(${currentPage < totalPages ? currentPage + 1 : totalPages})" class="px-3 py-1 border rounded-md ${currentPage === totalPages ? 'opacity-50' : 'hover:bg-gray-100'}">></button>`;
+
+    paginationContainer.innerHTML = html;
+}
+// --- FUNGSI UPDATE ANGKA KOTAK BIRU ---
+function updateDashboardTotal(jumlah) {
+    // Mencari elemen angka di kotak biru (sesuaikan class/id jika perlu)
+    const totalEl = document.querySelector(".total-kapal-angka") || 
+                   document.querySelector(".text-blue-600.font-bold") || 
+                   document.getElementById("totalKapal");
+                   
+    if (totalEl) {
+        totalEl.innerText = jumlah; // Menampilkan total keseluruhan (misal 24), bukan 10
+    }
+}
+function updateSafetyBoard(safetyDataArray) {
+    if (!safetyDataArray) return;
+
+    let totalTemuan = safetyDataArray.length;
+    let temuanOpen = safetyDataArray.filter(item => item.status === 'Open').length; // Cek status 'Open'
+
+    // Update Angka di Dashboard
+    const elOpen = document.getElementById('safety-open-count');
+    const elTotal = document.getElementById('safety-total-count');
+    
+    if (elOpen) elOpen.innerText = temuanOpen;
+    if (elTotal) elTotal.innerText = totalTemuan;
+
+    // Tampilkan 2 temuan terakhir di list kecil
+    const listEl = document.getElementById('safety-recent-list');
+    if (listEl && safetyDataArray.length > 0) {
+        let lastTwo = safetyDataArray.slice(-2).reverse();
+        listEl.innerHTML = lastTwo.map(item => 
+            `<div class="mb-1">• ${item.jenis}: ${item.lokasi}</div>`
+        ).join('');
+    }
+}
+
+// --- FUNGSI TOMBOL (WAJIB ADA AGAR BISA DIKLIK) ---
+function changePage(pageNumber) {
+    currentPage = pageNumber;
+    setTableLimit(); // Refresh tabel
+}
+
+function updatePaginationInfo(start, end, total) {
+    const infoEl = document.querySelector(".pagination-info") || document.querySelector("p.text-sm.text-gray-700");
+    if (infoEl && total > 0) {
+        infoEl.innerText = `Menampilkan ${start} sampai ${end} dari ${total} data`;
+    }
+}
+
+function updatePaginationButtons() {
+    const buttons = document.querySelectorAll('button'); 
+    buttons.forEach(btn => {
+        const pageTxt = btn.innerText.trim();
+        if (pageTxt == currentPage) {
+            btn.className = "px-3 py-1 bg-blue-600 text-white rounded-md border border-blue-600 font-bold mx-1";
+        } else if (!isNaN(pageTxt)) {
+            btn.className = "px-3 py-1 bg-white text-gray-700 rounded-md border border-gray-300 hover:bg-gray-100 mx-1";
+        }
+    });
+}
+// --- FUNGSI TAMBAHAN: VISUALISASI STATUS (TANPA RUBAH STRUKTUR) ---
+function updateRowVisuals(row) {
+    const statusCell = row.cells[17]; // Kolom KET (Paling kanan)
+    if (statusCell) {
+        const status = statusCell.innerText.trim().toUpperCase();
+        
+        if (status === "OK") {
+            statusCell.innerHTML = `<span style="background: #27ae60; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold;">OK</span>`;
+            row.style.backgroundColor = ""; // Warna normal
+        } else {
+            // Jika kosong, strip, atau kata lain, dianggap PROSES
+            statusCell.innerHTML = `<span style="background: #f39c12; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold;">PROSES</span>`;
+            row.style.backgroundColor = "#fff9eb"; // Highlight baris yang masih proses
+        }
+    }
+}
+
+
+// --- 5.5 FUNGSI INTEGRASI FIREBASE (DENGAN PROTEKSI STRUKTUR) ---
+async function loadFirebaseData() {
+
+    const tbody = document.getElementById("table-body");
+
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    const { data, error } =
+    await db
+      .from('operasional_kapal')
+      .select('*')
+      .order('commenced', { ascending: false });
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    const results = data || [];
+
+    results.forEach((item, index) => {
+
+        const tr = document.createElement("tr");
+
+        tr.className =
+        "hover:bg-blue-50/50 transition border-b";
+
+        tr.innerHTML = `
+            <td class="p-2 border text-center">${index + 1}</td>
+
+            <td class="p-2 border font-medium text-blue-600">
+                ${item.vessel || '-'}
+            </td>
+
+            <td class="p-2 border text-center">
+                ${item.flag || '-'}
+            </td>
+
+            <td class="p-2 border text-center">
+                ${item.dwt_gt_hp || '-'}
+            </td>
+
+            <td class="p-2 border">
+                ${item.agent || '-'}
+            </td>
+
+            <td class="p-2 border">
+                ${item.last_port || '-'}
+            </td>
+
+            <td class="p-2 border text-center">
+                ${item.commenced || '-'}
+            </td>
+
+            <td class="p-2 border text-center">
+                ${item.disch_jenis || '-'}
+            </td>
+
+            <td class="p-2 border text-right">
+                ${item.disch_quota || '0'}
+            </td>
+
+            <td class="p-2 border text-right">
+                ${item.disch_box || '0'}
+            </td>
+
+            <td class="p-2 border text-center">
+                ${item.load_jenis || '-'}
+            </td>
+
+            <td class="p-2 border text-right">
+                ${item.load_quota || '0'}
+            </td>
+
+            <td class="p-2 border text-right">
+                ${item.load_box || '0'}
+            </td>
+
+            <td class="p-2 border text-center">
+                ${item.completed || '-'}
+            </td>
+
+            <td class="p-2 border text-center">
+                ${hitungSelisihWaktu(
+                    item.commenced,
+                    item.completed
+                )}
+            </td>
+
+            <td class="p-2 border">
+                ${item.tujuan || '-'}
+            </td>
+
+            <td class="p-2 border">
+                ${item.shipper || '-'}
+            </td>
+
+            <td class="p-2 border text-center">
+                <span class="px-2 py-1 rounded text-white font-bold
+                ${item.status === 'OK'
+                ? 'bg-green-500'
+                : 'bg-yellow-500'}">
+
+                ${item.status || 'PROSES'}
+
+                </span>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+
+    });
+
+    updateDashboardStats(results);
+}
+// --- FUNGSI HAPUS DATA DARI FIREBASE ---
+async function deleteRow(id) {
+
+    if(confirm("Hapus data ini?")){
+
+        const { error } =
+        await db
+          .from('operasional_kapal')
+          .delete()
+          .eq('id', id);
+
+        if(error){
+            alert(error.message);
+            return;
+        }
+
+        alert("Data berhasil dihapus");
+
+        loadFirebaseData();
+    }
+}
+// --- 5.6 FUNGSI SIMPAN & UPDATE DATA (KONEKSI KE BACKEND) ---
+function saveData() {
+    const btnSimpan = document.querySelector(".modal-footer .btn-blue");
+    const editId = document.getElementById('editId').value; // Mengambil ID jika sedang mode edit
+
+    // Mengumpulkan data dari form input
+    const formData = {
+        rowNumber: editId, // Kosong jika tambah baru, ada isi jika update
+        vessel: document.getElementById('vessel').value,
+        flag: document.getElementById('flag').value,
+        dwt: document.getElementById('dwt').value,
+        agent: document.getElementById('agent').value,
+        last_port: document.getElementById('last_port').value,
+        tujuan: document.getElementById('tujuan').value,
+        commenced: document.getElementById('commenced').value,
+        completed: document.getElementById('completed').value,
+        status: document.getElementById('status').value,
+        jenis_disch: document.getElementById('jenis_disch').value,
+        disch_quota: document.getElementById('disch_quota').value,
+        disch_box: document.getElementById('disch_box').value,
+        jenis_load: document.getElementById('jenis_load').value,
+        load_quota: document.getElementById('load_quota').value,
+        load_box: document.getElementById('load_box').value,
+        shipper: document.getElementById('shipper').value
+    };
+
+    if (!formData.vessel) {
+        alert("Nama Vessel tidak boleh kosong!");
+        return;
+    }
+
+    // Visual Loading (Hanya satu kali)
+    btnSimpan.disabled = true;
+    btnSimpan.innerHTML = '<i class="fas fa-spinner fa-spin"></i> MEMPROSES...';
+
+    // Memanggil fungsi di Kode.gs
+    google.script.run
+        .withSuccessHandler(function(response) {
+            alert(editId ? "Data Berhasil Diperbarui!" : "Data Berhasil Disimpan!");
+            btnSimpan.disabled = false;
+            btnSimpan.innerHTML = '<i class="fas fa-save"></i> SIMPAN DATA';
+            closeModal();
+            
+            // Refresh Dashboard (panggil ulang fungsi render atau reload)
+            google.script.run.withSuccessHandler(function(html) {
+                document.open();
+                document.write(html);
+                document.close();
+            }).renderDashboard();
+        })
+        .withFailureHandler(function(err) {
+            alert("Gagal: " + err);
+            btnSimpan.disabled = false;
+            btnSimpan.innerHTML = '<i class="fas fa-save"></i> SIMPAN DATA';
+        })
+        .prosesSimpanData(formData); 
+}
+
+// Fungsi untuk mengisi form saat tombol "Update" di tabel diklik
+function editRow(data) {
+    // Gunakan fbKey untuk id edit
+    document.getElementById('editId').value = data.fbKey || ''; 
+    document.getElementById('vessel').value = data.vessel || '';
+    document.getElementById('flag').value = data.flag || '';
+    document.getElementById('dwt').value = data.dwt_gt_hp || '';
+    document.getElementById('agent').value = data.agent || '';
+    document.getElementById('last_port').value = data.last_port || '';
+    document.getElementById('tujuan').value = data.tujuan || '';
+    document.getElementById('commenced').value = data.commenced || '';
+    document.getElementById('completed').value = data.completed || '';
+    document.getElementById('status').value = data.status || 'PROSES';
+    document.getElementById('jenis_disch').value = data.disch_jenis || '';
+    document.getElementById('disch_quota').value = data.disch_quota || '';
+    document.getElementById('disch_box').value = data.disch_box || '';
+    document.getElementById('jenis_load').value = data.load_jenis || '';
+    document.getElementById('load_quota').value = data.load_quota || '';
+    document.getElementById('load_box').value = data.load_box || '';
+    document.getElementById('shipper').value = data.shipper || '';
+    
+    document.getElementById("inputModal").style.display = "block";
+}
+
+    window.addEventListener('load', () => {
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        const txt = btn.innerText.trim();
+    
+        // Perbaikan Hubungan Tombol Export Excel
+        if (txt.toLowerCase().includes('export')) {
+            btn.onclick = (e) => {
+                e.preventDefault();
+                exportToExcel();
+            };
+        }
+        
+        // Hubungkan Tombol Cetak PDF
+        if (txt.toLowerCase().includes('lihat pdf') || txt.toLowerCase().includes('cetak')) { 
+            btn.innerHTML = '<i class="fas fa-file-pdf"></i> Lihat PDF';
+            btn.onclick = (e) => {
+                e.preventDefault();
+                prepareAndPrint();
+            };
+        }
+
+        // Hubungkan Tombol Kolom
+        if (txt.toLowerCase().includes('kolom')) {
+            btn.onclick = (e) => {
+                e.preventDefault();
+                toggleColumnMenu(e);
+            };
+        }
+    });
+    
+    const select = document.querySelector('select');
+    if (select) {
+        select.onchange = (e) => setTableLimit(parseInt(e.target.value));
+        // Beri sedikit delay agar data firebase sempat masuk dulu sebelum dilimit
+        setTimeout(() => setTableLimit(parseInt(select.value) || 10), 1000);
+    }
+
+    const searchInput = document.querySelector('input[placeholder="Cari kapal..."]');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', searchVessel);
+    }
+
+    window.onclick = (e) => {
+        const menu = document.getElementById('column-menu');
+        if (menu && !e.target.closest('#column-menu') && !btnTeks(e.target, 'Kolom')) {
+            menu.style.display = 'none';
+        }
+    };
+});
+   // Jalankan fungsi saat halaman dibuka
+window.onload = function() {
+    // 1. Ambil data yang tersimpan di memori browser (localStorage)
+    const savedStart = localStorage.getItem('filterStart') || "2026-01";
+    const savedEnd = localStorage.getItem('filterEnd') || "2026-05";
+
+    // 2. Masukkan kembali ke input bulan
+    document.getElementById('startMonth').value = savedStart;
+    document.getElementById('endMonth').value = savedEnd;
+
+    // 3. Jalankan filter pertama kali
+    filterByMonth();
+};
+
+// Memastikan script berjalan setelah HTML selesai dimuat
+document.addEventListener('DOMContentLoaded', function() {
+    // Jalankan filter saat pertama kali buka
+    const savedStart = localStorage.getItem('filterStart') || "2026-05";
+    const savedEnd = localStorage.getItem('filterEnd') || "2026-07";
+    
+    if(document.getElementById('startMonth')) document.getElementById('startMonth').value = savedStart;
+    if(document.getElementById('endMonth')) document.getElementById('endMonth').value = savedEnd;
+
+    filterByMonth(); 
+});
+
+function filterByMonth() {
+    const startVal = document.getElementById('startMonth').value;
+    const endVal = document.getElementById('endMonth').value;
+
+    localStorage.setItem('filterStart', startVal);
+    localStorage.setItem('filterEnd', endVal);
+
+    const rows = document.querySelectorAll('#table-body tr');
+    
+    // Inisialisasi awal (Wajib 0 agar jika data kosong, tampilan ikut 0)
+    let totalKapal = 0;
+    let totalBongkarMT = 0;
+    let totalMuatMT = 0;
+    let latestDate = null;
+
+    rows.forEach(row => {
+        const dateCell = row.cells[6]; // Index 6: COMMENCED TIME
+        if (dateCell) {
+            let dateText = dateCell.innerText.trim();
+            if (dateText === "" || dateText === "-") {
+                row.style.display = "none";
+                return;
+            }
+
+            // 1. NORMALISASI TANGGAL
+            let cleanDateText = dateText.replace('T', ' '); 
+            let rowYM = cleanDateText.substring(0, 7); 
+            
+            if (dateText.includes('/')) {
+                const p = dateText.split('/');
+                rowYM = `${p[2].split(' ')[0]}-${p[1].padStart(2, '0')}`;
+            }
+
+            // 2. LOGIKA FILTER
+            if (rowYM >= startVal && rowYM <= endVal) {
+                row.style.display = "";
+                totalKapal++;
+
+                // 3. MEMBERSIHKAN ANGKA (Support format "2.300")
+                let textBongkar = row.cells[9]?.innerText || "0";
+                let textMuat = row.cells[12]?.innerText || "0";
+
+                const bVal = parseFloat(
+                textBongkar
+                .replace(/\./g, '')
+                .replace(',', '.')
+                 ) || 0;
+
+                const mVal = parseFloat(
+                textMuat
+                .replace(/\./g, '')
+                .replace(',', '.')
+                ) || 0;
+                
+                totalBongkarMT += bVal;
+                totalMuatMT += mVal;
+
+                // 4. MENCARI UPDATE TERAKHIR
+                let currentDataDate = new Date(cleanDateText.replace(/-/g, "/")); 
+                if (!isNaN(currentDataDate.getTime())) {
+                    if (!latestDate || currentDataDate > latestDate) {
+                        latestDate = currentDataDate;
+                    }
+                }
+            } else {
+                row.style.display = "none";
+            }
+        }
+    });
+
+    // --- BAGIAN UPDATE TAMPILAN (PENGIRIMAN DATA KE HTML) ---
+    const formatIndo = (num) => num.toLocaleString('id-ID');
+
+    // Update Card Statistik Utama (Reset ke 0 jika data tidak ada)
+    if(document.getElementById('total-kapal')) {
+        document.getElementById('total-kapal').innerText = totalKapal;
+    }
+    if(document.getElementById('total-bongkar')) {
+        document.getElementById('total-bongkar').innerText = formatIndo(totalBongkarMT);
+    }
+    if(document.getElementById('total-muat')) {
+        document.getElementById('total-muat').innerText = formatIndo(totalMuatMT);
+    }
+    if(document.getElementById('total-keseluruhan')) {
+        document.getElementById('total-keseluruhan').innerText = formatIndo(totalBongkarMT + totalMuatMT);
+    }
+
+    // Update Card Perbandingan Volume & Donut Chart
+    if(document.getElementById('total-mt-volume')) {
+        document.getElementById('total-mt-volume').innerText = formatIndo(totalBongkarMT + totalMuatMT);
+    }
+    if(document.getElementById('vol-bongkar-label')) {
+        document.getElementById('vol-bongkar-label').innerText = formatIndo(totalBongkarMT);
+    }
+    if(document.getElementById('vol-muat-label')) {
+        document.getElementById('vol-muat-label').innerText = formatIndo(totalMuatMT);
+    }
+
+    // Panggil fungsi render chart agar Donut ikut update/reset
+    if (typeof renderDonutChart === "function") {
+        renderDonutChart(totalBongkarMT, totalMuatMT);
+    }
+
+    // Update Label Update Terakhir (Menghilangkan Garis Datar jika data ada)
+    const elUpdate = document.getElementById('last-update-label');
+    if (elUpdate) {
+        if (latestDate && totalKapal > 0) {
+            const options = { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' };
+            elUpdate.innerText = `Update Terakhir: ${latestDate.toLocaleDateString('id-ID', options)}`;
+        } else {
+            elUpdate.innerText = "Update Terakhir: -";
+        }
+    }
+}
+// Fungsi pembantu agar deteksi tombol lebih aman
+function btnTeks(el, kata) {
+    return el.innerText && el.innerText.toLowerCase().includes(kata.toLowerCase());
+}
+</script>
+</body>
+</html>

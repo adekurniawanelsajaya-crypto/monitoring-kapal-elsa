@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script type="module" src="supabase.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #dcee38; padding: 20px; color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; background: rgb(235, 236, 240); padding: 20px; border-radius: 4px; border: 1px solid #ddd; }
+        .header-title { text-align: center; font-size: 22px; margin-bottom: 25px; font-weight: bold; color: #444; }
+        
+        .btn-container { margin-bottom: 20px; display: flex; gap: 10px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        .btn-blue { background-color: #337ab7; color: white; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-red { background-color: #d9534f; color: white; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 14px; font-weight: bold; }
+        
+        .btn-update { background-color: #5cb85c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-bottom: 3px; width: 100%; }
+        .btn-delete { background-color: #d9534f; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; width: 100%; }
+
+        /* MODAL STYLE */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); overflow-y: auto; }
+        .modal-content { background-color: #fff; margin: 30px auto; border-radius: 8px; width: 90%; max-width: 1100px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); max-height: 90vh; display: flex; flex-direction: column; }
+        .modal-header { padding: 15px 25px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px 25px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 15px 25px; border-top: 1px solid #eee; text-align: right; background: #fdfdfd; border-radius: 0 0 8px 8px; }
+        .close-btn { font-size: 28px; font-weight: bold; color: #aaa; cursor: pointer; }
+        .close-btn:hover { color: #d9534f; }
+
+        .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 13px; color: #337ab7; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; }
+        .section-title { grid-column: span 3; font-size: 14px; font-weight: bold; color: #337ab7; border-bottom: 1px solid #eee; margin: 15px 0 10px 0; padding-bottom: 5px; text-transform: uppercase; }
+
+        /* Tabel Dashboard Style Updated */
+        .search-box { margin-bottom: 10px; display: flex; justify-content: flex-end; }
+        .search-box input { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; width: 300px; }
+        .table-container { margin-top: 10px; overflow-x: auto; border: 1px solid #ddd; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 1300px; }
+        thead th { background-color: #f5f5f5; border: 1px solid #ddd; padding: 8px 4px; color: #555; text-transform: uppercase; }
+        td { border: 1px solid #ddd; padding: 8px 4px; text-align: center; vertical-align: middle; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        .vessel-link { color: #337ab7; text-decoration: none; font-weight: bold; }
+        .sub-header { background-color: #fcfcfc; font-size: 10px; }
+
+        /* Gaya untuk Layar Login */
+        #login-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999;
+        }
+        .login-box {
+            background: white; padding: 30px; border-radius: 12px;
+            width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .login-box h2 { color: #334155; margin-bottom: 20px; font-size: 20px; }
+        .login-box input {
+            width: 100%; padding: 12px; margin: 10px 0;
+            border: 1px solid #ddd; border-radius: 6px; outline: none;
+            box-sizing: border-box;
+        }
+        .login-box button {
+            width: 100%; padding: 12px; background: #2563eb; color: white;
+            border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px;
+        }
+        .login-box button:hover { background: #1d4ed8; }
+        .error-msg { color: #dc2626; font-size: 12px; margin-top: 5px; display: none; }
+        
+        .form-bar-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 12px;
+        }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-weight: bold; margin-bottom: 2px; }
+        .form-group input, .form-group select { padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        .full-width { grid-column: span 2; }
+
+       
+    </style>
+</head>
+<body>
+
+<div id="login-overlay">
+    <div class="login-box">
+        <h2>PORT OPERATIONAL LOGIN</h2>
+        <input type="text" id="user-input" placeholder="Username">
+        <input type="password" id="pass-input" placeholder="Password">
+        <p id="error-text" class="error-msg">Username atau Password Salah!</p>
+        <button onclick="checkLogin()">MASUK</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="header-title">Halaman Daftar Operasional Kapal PBM ELSA JAYA</div>
+
+    <div class="btn-container">
+        <button type="button" class="btn-blue" onclick="openModal()"><i class="fas fa-plus"></i> TAMBAH</button>
+        <a href="#" class="btn-red" onclick="logout(); return false;"><i class="fas fa-sign-out-alt"></i> LOGOUT</a>
+    </div>
+
+    <div id="inputModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span style="font-weight: bold; font-size: 18px;">Input & Update Data Operasional</span>
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="mainForm">
+                    <input type="hidden" id="editId">
+                    <div class="form-grid">
+                        <div class="section-title">IDENTITAS KAPAL</div>
+                        <div class="form-group"><label>Vessel Name</label><input type="text" id="vessel" placeholder="Nama Kapal..." required></div>
+                        <div class="form-group"><label>Flag</label><input type="text" id="flag"></div>
+                        <div class="form-group"><label>DWT / GT / HP</label><input type="text" id="dwt"></div>
+                        <div class="form-group"><label>Ship Agent</label><input type="text" id="agent"></div>
+                        <div class="form-group"><label>Last Port</label><input type="text" id="last_port"></div>
+                        <div class="form-group"><label>Pel. Tujuan</label><input type="text" id="tujuan"></div>
+
+                        <div class="section-title">WAKTU KEGIATAN</div>
+                        <div class="form-group"><label>Commenced Time</label><input type="datetime-local" id="commenced"></div>
+                        <div class="form-group"><label>Completed Time</label><input type="datetime-local" id="completed"></div>
+                        <div class="form-group">
+                            <label>Status (KET)</label>
+                            <select id="status">
+                                <option value="PROSES">PROSES</option>
+                                <option value="OK">OK</option>
+                            </select>
+                        </div>
+
+                        <div class="section-title">ACTIVITY (CARGO)</div>
+                        <div class="form-group"><label>Jenis Bongkar</label><input type="text" id="jenis_disch"></div>
+                        <div class="form-group"><label>Bongkar (Disch MT)</label><input type="number" id="disch_quota"></div>
+                        <div class="form-group"><label>Jml Box (Disch)</label><input type="number" id="disch_box"></div>
+                        <div class="form-group"><label>Jenis Muat</label><input type="text" id="jenis_load"></div>
+                        <div class="form-group"><label>Muat (Loading MT)</label><input type="number" id="load_quota"></div>
+                        <div class="form-group"><label>Jml Box (Loading)</label><input type="number" id="load_box"></div>
+                        <div class="form-group" style="grid-column: span 3;"><label>Shipper</label><input type="text" id="shipper" placeholder="Nama Shipper"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-blue" onclick="saveData()" style="padding: 10px 40px;"><i class="fas fa-save"></i> SIMPAN DATA</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" onkeyup="renderTable()" placeholder="Cari kapal...">
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2" width="40">No</th>
+                    <th rowspan="2">Vessel Name</th>
+                    <th rowspan="2">Flag</th>
+                    <th rowspan="2">DWT / GT / HP</th>
+                    <th rowspan="2">Ship Agent</th>
+                    <th rowspan="2">Last Port</th>
+                    <th rowspan="2">Commenced Time</th>
+                    <th colspan="3">Activity (Disch)</th>
+                    <th colspan="3">Activity (Loading)</th>
+                    <th rowspan="2">Completed Time</th>
+                    <th rowspan="2">Pel. Tujuan</th>
+                    <th rowspan="2">Shipper</th>
+                    <th rowspan="2">Status</th>
+                    <th rowspan="2" width="80">Action</th>
+                </tr>
+                <tr class="sub-header">
+                    <th>Jenis</th>
+                    <th>MT</th>
+                    <th>Box</th>
+                    <th>Jenis</th>
+                    <th>MT</th>
+                    <th>Box</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                
+            </tbody>
+        </table>
+        <div id="paginationControls"></div>
+    </div>
+</div>
+
+<div id="modalMenuBAR" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center;">
+    <div style="background-color: white; padding: 0; border-radius: 8px; width: 320px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); overflow: hidden; font-family: sans-serif;">
+        <div style="background-color: #2563eb; color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <span id="judulModalBAR" style="font-weight: bold; font-size: 14px;">MENU INPUT</span>
+            <button onclick="tutupMenuBAR()" style="background: none; border: none; color: white; cursor: pointer; font-size: 20px;">&times;</button>
+        </div>
+        <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+            <button onclick="bukaFormSpesifik('BAR')" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; cursor: pointer;">📄 BAR (PBM)</button>
+            <button onclick="bukaFormSpesifik('TimeSheet')" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; cursor: pointer;">🕒 Time Sheet</button>
+            <button onclick="bukaFormSpesifik('CargoLoading')" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; cursor: pointer;">📥 Cargo Loading</button>
+            <button onclick="bukaFormSpesifik('CargoUnloading')" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; cursor: pointer;">📤 Cargo Unloading</button>
+            <button onclick="bukaFormSpesifik('CargoDamage')" style="text-align: left; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fff5f5; color: #c53030; cursor: pointer;">⚠️ Cargo Damage</button>
+            <button onclick="bukaFormSpesifik('StowagePlan')" style="text-align: center; padding: 12px; border: none; border-radius: 4px; background: #2563eb; color: white; font-weight: bold; cursor: pointer;">⚓ Stowage Plan</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalFormBAR" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); align-items: center; justify-content: center; overflow-y: auto;">
+    <div style="background-color: white; border-radius: 8px; width: 95%; max-width: 600px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); font-family: sans-serif; margin: 20px;">
+        <div style="background-color: #1e40af; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0;">
+            <h3 style="margin: 0; font-size: 16px;">FORM BERITA ACARA RAMPUNG (BAR)</h3>
+            <button onclick="tutupFormBAR()" style="background: none; border: none; color: white; cursor: pointer; font-size: 24px;">&times;</button>
+        </div>
+        
+        <form id="formInputBAR" style="padding: 20px;" onsubmit="simpanDataBAR(event)">
+            <!-- Elemen Hidden untuk Menampung Data Otomatis dari Tabel (Diperlukan oleh simpanDataBAR) -->
+            <input type="hidden" id="bar_vessel">
+            <input type="hidden" id="bar_agency">
+            <input type="hidden" id="bar_jenis_bongkar">
+            <input type="hidden" id="bar_disch_mt">
+            <input type="hidden" id="bar_jenis_load">
+            <input type="hidden" id="bar_load_mt">
+            <input type="hidden" id="bar_cargo_type">
+            <input type="hidden" id="bar_qty">
+            <input type="hidden" id="bar_completed">
+
+            <!-- Grid Input Utama -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <!-- Baris 1: Nomor Dokumen -->
+                <div class="form-group">
+                    <label style="font-weight:bold; font-size:12px;">NO. BAR</label>
+                    <input type="text" id="bar_no" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight:bold; font-size:12px;">NO SIK</label>
+                    <input type="text" id="bar_no_sik" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                </div>
+                
+                <!-- Baris 2: Waktu Operasional (Sudah Diurutkan Kronologis: Mulai -> Selesai) -->
+                <div class="form-group">
+                    <label style="font-weight:bold; font-size:12px;">Discharging Commenced Time</label>
+                    <input type="datetime-local" id="bar_tgl_sik" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight:bold; font-size:12px;">Discharging Completed Time</label>
+                    <input type="datetime-local" id="bar_tgl_doc" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                </div>
+            </div>
+</form>
+
+            <!-- CONTAINER HIDDEN INPUTS (Diperbarui tipe datanya agar anti-error saat menerima teks/strip) -->
+            <div style="display: none;">
+                <input type="text" id="bar_job_name">
+                <input type="text" id="bar_vessel">
+                <input type="text" id="bar_agency">
+                <input type="text" id="bar_jenis_bongkar">
+                <input type="text" id="bar_disch_mt">  <!-- Diubah ke text agar aman menerima text/strip -->
+                <input type="text" id="bar_disch_box"> <!-- Diubah ke text agar aman menerima text/strip -->
+                <input type="text" id="bar_jenis_load">
+                <input type="text" id="bar_load_mt">   <!-- Diubah ke text agar aman menerima text/strip -->
+                <input type="text" id="bar_cargo_type">
+                <input type="text" id="bar_qty">
+                <input type="text" id="bar_commenced">  <!-- Diubah ke text sebagai cadangan cache data -->
+                <input type="text" id="bar_completed">  <!-- Diubah ke text sebagai cadangan cache data -->
+                <select id="bar_status"><option value="Finish 100%">Finish 100%</option></select>
+            </div>
+
+            <!-- CONTAINER TOMBOL AKSI MODAL (Struktur, Tata Letak, & Desain Tetap Sama) -->
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button type="button" id="btnSimpanBAR" onclick="simpanDataBAR(event)" style="flex: 2; padding: 12px; background: #059669; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                    SIMPAN / UPDATE DATA
+                </button>
+                <button type="button" onclick="eksporKePDFBAR()" style="flex: 1; padding: 12px; background: #dc2626; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                    📄 PDF
+                </button>
+            </div>
+        </div>
+
+
+
+</div>
+</div>
+
+<iframe
+    id="pdf-sandbox"
+
+    tabindex="-1"
+
+    aria-hidden="true"
+
+    style="
+        position:fixed;
+
+        left:-99999px;
+        top:-99999px;
+
+        width:1px;
+        height:1px;
+
+        min-width:1px;
+        min-height:1px;
+
+        border:none;
+
+        visibility:hidden;
+
+        pointer-events:none;
+
+        opacity:0;
+
+        z-index:-9999;
+
+        overflow:hidden;
+    ">
+</iframe>
+
+
+
+<script src="script.js"></script>
+
+
+
+<script>
+    // 1. KONFIGURASI FIREBASE
+    const firebaseConfig = {
+        apiKey: "AIzaSyDhJ7Dhx2gWdvYelmWJnpW0VYgWmn9LmpQ",
+        authDomain: "monitoring-kegiatan-elsa-jaya.firebaseapp.com",
+        databaseURL: "https://monitoring-kegiatan-elsa-jaya-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "monitoring-kegiatan-elsa-jaya",
+        storageBucket: "monitoring-kegiatan-elsa-jaya.firebasestorage.app",
+        messagingSenderId: "743410584985",
+        appId: "1:743410584985:web:1cc1583c8cb982be495708",
+        measurementId: "G-SGVC9EEHVR"
+    };
+
+   
+    let db;
+
+window.addEventListener('load', () => {
+
+    db = window.supabase;
+
+    if(!db){
+        console.error("Supabase belum connect");
+        return;
+    }
+
+    loadTableData();
+});
+
+    let currentPage = 1;
+    const rowsPerPage = 10;
+    let allData = []; // Untuk menampung semua data dari Firebase
+    let filteredTotal = 0;
+    let lastSearchTerm = "";
+    let isEditMode = false;
+    let dataKapalAktif = null; // Variable global untuk menyimpan kapal yang sedang dipilih
+
+    // 2. FUNGSI MODAL DASHBOARD UTAMA
+    function openModal() {
+        document.getElementById("mainForm").reset();
+        document.getElementById("editId").value = ""; 
+        const btnSimpan = document.querySelector(".modal-footer .btn-blue");
+        if (btnSimpan) btnSimpan.innerHTML = '<i class="fas fa-save"></i> SIMPAN DATA';
+        document.getElementById("inputModal").style.display = "block";
+    }
+
+    function closeModal() { 
+        document.getElementById("inputModal").style.display = "none"; 
+    }
+
+    window.onclick = function(event) { 
+        if (event.target == document.getElementById("inputModal")) closeModal(); 
+    }
+
+    // 3. FUNGSI EDIT ROW UTAMA
+    function editRow(data) {
+        document.getElementById('editId').value = data.id || '';
+        
+        document.getElementById('vessel').value = data.vessel || '';
+        document.getElementById('flag').value = data.flag || '';
+        document.getElementById('dwt').value = data.dwt_gt_hp || '';
+        document.getElementById('agent').value = data.agent || '';
+        document.getElementById('last_port').value = data.last_port || '';
+        document.getElementById('tujuan').value = data.tujuan || '';
+        
+        // --- PENGAMAN INPUT DATE-TIME EDIT UTAMA ---
+        const setSafeDate = (id, val) => {
+            const el = document.getElementById(id);
+            if(el) el.value = (val && val !== "-" && val !== "─") ? val : "";
+        };
+        setSafeDate('commenced', data.commenced);
+        setSafeDate('completed', data.completed);
+        
+        document.getElementById('status').value = data.status || 'PROSES';
+        document.getElementById('jenis_disch').value = data.disch_jenis || '';
+        document.getElementById('disch_quota').value = data.disch_quota || '';
+        document.getElementById('disch_box').value = data.disch_box || '';
+        document.getElementById('jenis_load').value = data.load_jenis || '';
+        document.getElementById('load_quota').value = data.load_quota || '';
+        document.getElementById('load_box').value = data.load_box || '';
+        document.getElementById('shipper').value = data.shipper || '';
+        
+        const btnSimpan = document.querySelector(".modal-footer .btn-blue");
+        if (btnSimpan) btnSimpan.innerHTML = '<i class="fas fa-edit"></i> UPDATE DATA';
+
+        document.getElementById("inputModal").style.display = "block";
+    }
+
+    // 4. FUNGSI SIMPAN DATA UTAMA (CREATE & UPDATE)
+    async function saveData() {
+
+    const editId =
+    document.getElementById('editId').value;
+
+    const formData = {
+
+        vessel:
+        document.getElementById('vessel').value,
+
+        flag:
+        document.getElementById('flag').value,
+
+        dwt_gt_hp:
+        document.getElementById('dwt').value,
+
+        agent:
+        document.getElementById('agent').value,
+
+        last_port:
+        document.getElementById('last_port').value,
+
+        tujuan:
+        document.getElementById('tujuan').value,
+
+        commenced:
+        document.getElementById('commenced').value,
+
+        completed:
+        document.getElementById('completed').value,
+
+        status:
+        document.getElementById('status').value,
+
+        disch_jenis:
+        document.getElementById('jenis_disch').value,
+
+        disch_quota:
+        document.getElementById('disch_quota').value,
+
+        disch_box:
+        document.getElementById('disch_box').value,
+
+        load_jenis:
+        document.getElementById('jenis_load').value,
+
+        load_quota:
+        document.getElementById('load_quota').value,
+
+        load_box:
+        document.getElementById('load_box').value,
+
+        shipper:
+        document.getElementById('shipper').value,
+
+       
+    };
+
+    if (!formData.vessel) {
+        alert("Nama kapal wajib diisi");
+        return;
+    }
+
+    let error;
+
+    if (editId) {
+
+        const result =
+        await db
+          .from('operasional_kapal')
+          .update(formData)
+          .eq('id', editId);
+
+        error = result.error;
+
+    } else {
+
+        const result =
+        await db
+          .from('operasional_kapal')
+          .insert([formData]);
+
+        error = result.error;
+    }
+
+    if (error) {
+        alert(error.message);
+        return;
+    }
+
+    alert("Data berhasil disimpan");
+
+    closeModal();
+
+    loadTableData();
+}
+
+    // 5. FUNGSI LOAD DATA REALTIME
+    async function loadTableData() {
+
+    const { data, error } =
+    await db
+      .from('operasional_kapal')
+      .select('*')
+      .order('id', { ascending: false });
+
+    if(error){
+        console.error(error);
+        return;
+    }
+
+    allData = data || [];
+
+    renderTable();
+}
+    function renderTable() {
+        const tableBody = document.getElementById("tableBody");
+        if (!tableBody) return;
+        tableBody.innerHTML = "";
+
+        const searchTerm = document.getElementById("searchInput") ? document.getElementById("searchInput").value.toUpperCase() : "";
+        if (searchTerm !== lastSearchTerm) {
+            currentPage = 1;
+            lastSearchTerm = searchTerm;
+        }
+
+        const filteredData = allData.filter(data => {
+            return (data.vessel || "").toUpperCase().indexOf(searchTerm) > -1;
+        });
+
+        filteredTotal = filteredData.length;
+        const totalPages = Math.max(1, Math.ceil(filteredTotal / rowsPerPage));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const paginatedData = filteredData.slice(startIndex, endIndex);
+
+        let nomor = startIndex + 1;
+
+        paginatedData.forEach((data) => {
+            const rowData = JSON.stringify(data).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            
+            const row = `
+                <tr>
+                    <td>${nomor++}</td>
+                    <td>
+                        <a href="javascript:void(0)" 
+                           onclick="bukaMenuOpsiBAR('${rowData}')" 
+                           style="color: #2563eb; font-weight: bold; text-decoration: underline; cursor: pointer;">
+                           ${data.vessel || '-'}
+                        </a>
+                    </td>
+                    <td>${data.flag || '-'}</td>
+                    <td>${data.dwt_gt_hp || '-'}</td>
+                    <td>${data.agent || '-'}</td>
+                    <td>${data.last_port || '-'}</td>
+                    <td>${data.commenced ? data.commenced.replace('T', ' ') : '-'}</td>
+                    <td>${data.disch_jenis || '-'}</td>
+                    <td>${data.disch_quota || '0'}</td>
+                    <td>${data.disch_box || '0'}</td>
+                    <td>${data.load_jenis || '-'}</td>
+                    <td>${data.load_quota || '0'}</td>
+                    <td>${data.load_box || '0'}</td>
+                    <td>${data.completed ? data.completed.replace('T', ' ') : '-'}</td>
+                    <td>${data.tujuan || '-'}</td>
+                    <td>${data.shipper || '-'}</td>
+                    <td><span style="color: ${data.status === 'OK' ? 'green' : 'orange'}; font-weight: bold;">${data.status || 'PROSES'}</span></td>
+                    <td>
+                        <button type="button" class="btn-update" onclick='editRow(${JSON.stringify(data).replace(/'/g, "\\'").replace(/"/g, '&quot;')})'>Update</button>
+                        <button type="button" class="btn-delete" onclick="deleteRow('${data.id}')">Delete</button>
+                    </td>
+                </tr>`;
+            tableBody.insertAdjacentHTML('beforeend', row);
+        });
+
+        renderPaginationControls();
+    }
+
+    // 6. MANAJEMEN OPERASIONAL MODAL INPUT REKAP BAR
+    function bukaMenuOpsiBAR(rowDataJson) {
+        try {
+            const cleanJson = rowDataJson.replace(/&quot;/g, '"').replace(/\\'/g, "'");
+            dataKapalAktif = JSON.parse(cleanJson);
+            
+            const modal = document.getElementById("modalMenuBAR");
+            const judul = document.getElementById("judulModalBAR");
+            
+            if (modal && judul) {
+                judul.innerText = "MENU: " + (dataKapalAktif.vessel || "KAPAL");
+                modal.style.display = "flex";
+                
+                try {
+                    const pdfDischEl = document.getElementById('pdf-disch-cargo');
+                    if (pdfDischEl) pdfDischEl.textContent = dataKapalAktif.disch_jenis || "-";
+                    
+                    const pdfLoadEl = document.getElementById('pdf-load-cargo');
+                    if (pdfLoadEl) pdfLoadEl.textContent = dataKapalAktif.load_jenis || "-";
+                } catch(e) { 
+                    console.warn('Gagal set preview teks pdf hidden', e); 
+                }
+            }
+        } catch (e) {
+            console.error("Error parse data:", e);
+            alert("Gagal memuat data kapal");
+        }
+    }
+
+    async function bukaFormSpesifik(jenis) {
+        const tempData = dataKapalAktif; 
+        if (!tempData) return alert("Pilih kapal terlebih dahulu!");
+
+        const menuOpsi = document.getElementById("modalMenuBAR");
+        if (menuOpsi) menuOpsi.style.display = "none"; 
+
+        const setVal = (id, val) => {
+            const els = document.querySelectorAll(`[id="${id}"]`);
+            els.forEach(el => {
+                if (el) {
+                    // --- PROTEKSI FORM INPUT DATE-TIME BILA DATA BERISI STRIP ("-") ---
+                    if ((el.type === "datetime-local" || el.type === "date") && (val === "-" || val === "─" || !val)) {
+                        el.value = "";
+                    } else {
+                        el.value = val || "";
+                    }
+                }
+            });
+        };
+
+        if (jenis === 'BAR') {
+            setVal("bar_no", "");
+            setVal("bar_no_sik", "");
+            setVal("bar_tgl_sik", "");
+            setVal("bar_tgl_doc", "");
+            setVal("bar_completed", "");
+
+            const namaKapal = tempData.vessel || tempData.kapal || "-";
+            setVal("bar_vessel", namaKapal);
+            setVal("bar_agency", tempData.agent || "-");
+            
+            setVal("bar_jenis_bongkar", tempData.disch_jenis || "");
+            setVal("bar_disch_mt", tempData.disch_quota || "0");
+            setVal("bar_jenis_load", tempData.load_jenis || "");
+            setVal("bar_load_mt", tempData.load_quota || "0");
+
+            const cargo = tempData.load_jenis || tempData.disch_jenis || "-";
+            const qty = (tempData.load_quota || tempData.disch_quota || "0") + " MT";
+            setVal("bar_cargo_type", cargo);
+            setVal("bar_qty", qty);
+
+            const modalUtama = document.getElementById("modalFormBAR");
+            if (modalUtama) modalUtama.style.display = "flex";
+
+            try {
+                const docID = namaKapal.replace(/[.#$/[\]]/g, "_");
+                if (typeof db !== "undefined") {
+                   db = window.supabase('data_rekap_bar/' + docID).once('value', (snapshot) => {
+                        const kapalSaatIni = dataKapalAktif ? (dataKapalAktif.vessel || dataKapalAktif.kapal || "-") : "";
+                        if (namaKapal !== kapalSaatIni) return;
+
+                        const savedData = snapshot.val();
+                        
+                        const valCompleted = savedData 
+                            ? (savedData.disch_completed_time || savedData["Discharging Completed Time"] || savedData.completed || "")
+                            : (tempData.completed_time || tempData.finish || "");
+
+                        if (savedData) {
+                            setVal("bar_no", savedData.noBar || "");
+                            setVal("bar_no_sik", savedData.noSik || "");
+                            
+                            const commencedTime = savedData.disch_commenced_time || savedData["Discharging Commenced Time"] || "";
+                            setVal("bar_tgl_sik", commencedTime);
+                            setVal("bar_tgl_doc", valCompleted);
+                            setVal("bar_completed", valCompleted);
+
+                            setVal("bar_jenis_bongkar", savedData.bar_jenis_bongkar || tempData.disch_jenis || "");
+                            setVal("bar_disch_mt", savedData.bar_disch_mt ?? tempData.disch_quota ?? "0");
+                            setVal("bar_jenis_load", savedData.bar_jenis_load || tempData.load_jenis || "");
+                            setVal("bar_load_mt", savedData.bar_load_mt ?? tempData.load_quota ?? "0");
+
+                            const finalCargo = savedData.cargo || savedData.bar_jenis_load || savedData.bar_jenis_bongkar || cargo;
+                            const finalQty = savedData.qty || (savedData.bar_load_mt || savedData.bar_disch_mt || "0") + " MT";
+                            
+                            setVal("bar_cargo_type", finalCargo);
+                            setVal("bar_qty", finalQty);
+                        } else {
+                            setVal("bar_completed", valCompleted);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Firebase error:", e);
+            }
+        } else if (jenis === 'SAFETY') {
+            const modalSafety = document.getElementById("modalFormSafety");
+            if (modalSafety) {
+                modalSafety.style.display = "flex";
+            } else if (typeof bukaFormSafety === "function") {
+                bukaFormSafety(tempData);
+            }
+        }
+    }
+
+    function tutupFormBAR() {
+        const modalForm = document.getElementById("modalFormBAR");
+        if (modalForm) {
+            modalForm.style.display = "none";
+        }
+        
+        const fields = ["bar_no", "bar_no_sik", "bar_tgl_sik", "bar_tgl_doc", "bar_completed","bar_jenis_bongkar","bar_disch_mt","bar_jenis_load","bar_load_mt","bar_cargo_type","bar_qty","bar_vessel","bar_agency"];
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = ""; 
+        });
+        
+        if (dataKapalAktif) {
+            console.log("Referensi dataKapalAktif diamankan untuk kebutuhan cetak PDF.");
+        }
+        console.log("Form BAR ditutup dan dibersihkan.");
+    }
+
+    function editDataBAR(dataExisting) {
+        isEditMode = true;
+        
+        const modal = document.getElementById("modalFormBAR");
+        if (modal) modal.style.display = "flex";
+        
+        const btn = document.getElementById("btnSimpanBAR");
+        if (btn) btn.innerText = "UPDATE DATA BAR";
+        
+        const setInput = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) {
+                // --- PROTEKSI JUGA DI EDIT DATA BAR ---
+                if ((el.type === "datetime-local" || el.type === "date") && (val === "-" || val === "─" || !val)) {
+                    el.value = "";
+                } else {
+                    el.value = val || "";
+                }
+            } else {
+                console.warn(`Elemen HTML dengan ID "${id}" tidak ditemukan!`);
+            }
+        };
+
+        setInput("bar_no", dataExisting.noBar);
+        setInput("bar_no_sik", dataExisting.noSik);
+        
+        const tglSik = dataExisting["Discharging Commenced Time"] || dataExisting.disch_commenced_time || dataExisting.commenced;
+        const tglDoc = dataExisting["Discharging Completed Time"] || dataExisting.disch_completed_time || dataExisting.finish;
+        
+        setInput("bar_tgl_sik", tglSik); 
+        setInput("bar_tgl_doc", tglDoc);
+        
+        setInput("bar_vessel", dataExisting.vessel);
+        setInput("bar_agency", dataExisting.agency);
+        
+        setInput("bar_jenis_bongkar", dataExisting.bar_jenis_bongkar || "");
+        setInput("bar_disch_mt", dataExisting.bar_disch_mt || "0");
+        setInput("bar_jenis_load", dataExisting.bar_jenis_load || "");
+        setInput("bar_load_mt", dataExisting.bar_load_mt || "0");
+
+        setInput("bar_cargo_type", dataExisting.cargo);
+        setInput("bar_qty", dataExisting.qty);
+        setInput("bar_completed", dataExisting.completed);
+    }
+
+    function simpanDataBAR(event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        if (!dataKapalAktif) {
+            alert("Pilih kapal terlebih dahulu dari tabel!");
+            return;
+        }
+
+        const getVal = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.value : "-";
+        };
+
+        const namaKapal = dataKapalAktif.vessel || dataKapalAktif.kapal;
+        const docID = namaKapal.replace(/[.#$/[\]]/g, "_");
+
+        const tglCommenced = getVal("bar_tgl_sik");
+        const tglCompleted = getVal("bar_tgl_doc");
+
+        const payload = {
+            vessel: namaKapal,
+            noBar: getVal("bar_no"),
+            noSik: getVal("bar_no_sik"),
+            disch_commenced_time: tglCommenced, 
+            disch_completed_time: tglCompleted,
+            completed: (tglCompleted !== "-" && tglCompleted !== "") ? tglCompleted : (dataKapalAktif.completed_time || dataKapalAktif.finish || "-"),
+            agency: getVal("bar_agency"),
+            bar_jenis_bongkar: getVal("bar_jenis_bongkar"),
+            bar_disch_mt: getVal("bar_disch_mt"),
+            bar_jenis_load: getVal("bar_jenis_load"),
+            bar_load_mt: getVal("bar_load_mt"),
+            cargo: getVal("bar_cargo_type"),
+            qty: getVal("bar_qty"),
+            updatedAt: new Date().toLocaleString('id-ID')
+        };
+
+        try {
+            if (typeof db !== "undefined") {
+                db = window.supabase('data_rekap_bar/' + docID).set(payload)
+                    .then(() => {
+                        dataKapalAktif.noBar = payload.noBar;
+                        dataKapalAktif.noSik = payload.noSik;
+                        dataKapalAktif.agency = payload.agency;
+                        dataKapalAktif.cargo = payload.cargo;
+                        dataKapalAktif.qty = payload.qty;
+                        dataKapalAktif.completed = payload.completed;
+                        
+                        dataKapalAktif.disch_commenced_time = tglCommenced;
+                        dataKapalAktif.disch_completed_time = tglCompleted; 
+                        
+                        dataKapalAktif.commenced = tglCommenced;
+                        dataKapalAktif.finish = tglCompleted; 
+                        
+                        dataKapalAktif.bar_jenis_bongkar = payload.bar_jenis_bongkar;
+                        dataKapalAktif.bar_jenis_load = payload.bar_jenis_load; 
+                        dataKapalAktif.bar_disch_mt = payload.bar_disch_mt;
+                        dataKapalAktif.bar_load_mt = payload.bar_load_mt;
+                        
+                        alert("✅ BERHASIL: Data " + namaKapal + " telah diperbarui!");
+                        tutupFormBAR(); 
+                    })
+                    .catch((err) => {
+                        alert("❌ GAGAL SIMPAN: " + err.message);
+                    });
+            } else {
+                alert("❌ ERROR: Koneksi Firebase tidak ditemukan.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Terjadi kesalahan sistem: " + e.message);
+        }
+    }
+
+    // 7. SISTEM EKSPOR PDF REVISI (ANTI MENUMPUK DI LAYAR UTAMA)
+    function eksporKePDFBAR() {
+        const element = document.getElementById('template-pdf-hidden');
+        if (!element) return;
+
+        const getVal = (id, altKey) => {
+            const el = document.getElementById(id);
+            const val = el ? el.value : '';
+            if (val && val.trim() !== '' && val !== '-' && val !== '─') return val.trim();
+            return (dataKapalAktif && altKey && dataKapalAktif[altKey]) ? dataKapalAktif[altKey] : '-';
+        };
+
+        function restoreTemplateStyles(prev) {
+            const safePrev = prev || {};
+            element.style.setProperty('position', safePrev.position || 'absolute', 'important');
+            element.style.setProperty('left', safePrev.left || '-12000px', 'important');
+            element.style.setProperty('top', safePrev.top || '0', 'important');
+            element.style.setProperty('opacity', safePrev.opacity || '1');
+            element.style.setProperty('z-index', safePrev.zIndex || '');
+            element.style.setProperty('pointer-events', safePrev.pointerEvents || 'none');
+            element.style.setProperty('visibility', safePrev.visibility || 'hidden');
+        }
+
+        setTimeout(function() {
+            const setTemplateText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = (value && value !== '0' && value !== '-' && value !== '─' && value !== 'undefined') ? value : '-';
+            };
+
+            // --- PERBAIKAN FORMAT TANGGAL FILTER STRIP ("-") ---
+            const formatTanggalOtomatis = (waktuRaw) => {
+                if (!waktuRaw || waktuRaw === '-' || waktuRaw === '─' || waktuRaw === 'undefined' || waktuRaw.trim() === '') return '-';
+                try {
+                    // Jika berisi text format tanggal bawaan lokal, kembalikan langsung tanpa parse objek baru
+                    if (waktuRaw.includes(",") && waktuRaw.includes("-")) return waktuRaw;
+                    
+                    const dateObj = new Date(waktuRaw);
+                    if (!isNaN(dateObj.getTime())) {
+                        const opsiHari = { weekday: 'long' };
+                        const namaHari = new Intl.DateTimeFormat('id-ID', opsiHari).format(dateObj);
+                        const dd = String(dateObj.getDate()).padStart(2, '0');
+                        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        const yyyy = dateObj.getFullYear();
+                        const hh = String(dateObj.getHours()).padStart(2, '0');
+                        const min = String(dateObj.getMinutes()).padStart(2, '0');
+                        return `${namaHari}, ${dd}-${mm}-${yyyy}   ${hh}:${min}`;
+                    }
+                } catch (e) { console.error('Gagal format tanggal:', e); }
+                return waktuRaw;
+            };
+
+            setTemplateText('pdf-no-bar', getVal('bar_no', 'no_bar'));
+            setTemplateText('pdf-no-sik', getVal('bar_no_sik', 'no_sik'));
+            
+            const elCompletedDisch = document.getElementById('bar_tgl_doc');
+            const valCompletedDisch = (elCompletedDisch && elCompletedDisch.value) ? elCompletedDisch.value : '-';
+
+            const valCompletedLoad = dataKapalAktif?.completed_time || dataKapalAktif?.COMPLETED_TIME || dataKapalAktif?.finish || dataKapalAktif?.finish_time || dataKapalAktif?.completed || '-';
+            const valCompleted = valCompletedDisch !== '-' ? valCompletedDisch : valCompletedLoad;
+
+            const dischStartRaw = getVal('bar_tgl_sik', 'disch_start');
+            setTemplateText('pdf-disch-cargo', getVal('bar_jenis_bongkar', 'disch_cargo'));
+            setTemplateText('pdf-disch-qty', getVal('bar_disch_mt', 'disch_mt'));
+            setTemplateText('pdf-disch-start', formatTanggalOtomatis(dischStartRaw));
+            setTemplateText('pdf-disch-finish', formatTanggalOtomatis(valCompletedDisch)); 
+            setTemplateText('pdf-disch-teus', (getVal('bar_disch_box', 'disch_box') || '0') + ' TEUS');
+
+            const loadStartRaw = getVal('bar_tgl_load_start', 'commenced');
+            setTemplateText('pdf-load-cargo', getVal('bar_jenis_load', 'load_cargo'));
+            setTemplateText('pdf-load-qty', getVal('bar_load_mt', 'load_mt'));
+            setTemplateText('pdf-load-start', formatTanggalOtomatis(loadStartRaw));
+            setTemplateText('pdf-load-finish', formatTanggalOtomatis(valCompletedLoad)); 
+            setTemplateText('pdf-load-teus', (getVal('bar_load_box', 'load_box') || '0') + ' TEUS');
+
+            setTemplateText('pdf-vessel', getVal('bar_vessel', 'vessel_name'));
+            setTemplateText('pdf-agency', getVal('bar_agency', 'agency'));
+            setTemplateText('pdf-port', dataKapalAktif?.last_port || '-');
+            setTemplateText('pdf-from', dataKapalAktif?.last_port || '-');
+            setTemplateText('pdf-to', dataKapalAktif?.tujuan || '-');
+            setTemplateText('pdf-shipper', dataKapalAktif?.shipper || '-');
+            setTemplateText('pdf-tgl-doc', formatTanggalOtomatis(valCompleted)); 
+
+            const prev = {
+                left: element.style.left, top: element.style.top, position: element.style.position,
+                opacity: element.style.opacity, zIndex: element.style.zIndex,
+                pointerEvents: element.style.pointerEvents, visibility: element.style.visibility
+            };
+
+            element.style.setProperty('position', 'absolute', 'important');
+
+element.style.position = 'absolute';
+
+element.style.left = '-12000px';
+
+element.style.top = '-12000px';
+
+element.style.opacity = '0';
+
+element.style.visibility = 'hidden';
+
+element.style.display = 'block';
+
+element.style.zIndex = '-9999';
+
+element.style.pointerEvents = 'none';
+
+element.style.background = '#ffffff';
+
+            const pdfWindow = window.open('', '_blank');
+            if (!pdfWindow) {
+                alert('Popup terblokir.');
+                restoreTemplateStyles(prev);
+                return;
+            }
+
+            html2canvas(element, {
+
+    scale: 2.5,
+
+    useCORS: true,
+
+    allowTaint: true,
+
+    backgroundColor: '#ffffff',
+
+    logging: false,
+
+    scrollX: 0,
+
+    scrollY: 0,
+
+    windowWidth: element.scrollWidth,
+
+    windowHeight: element.scrollHeight
+            }).then(function(canvas) {
+                const imgData = canvas.toDataURL('image/png');
+                const jsPDFClass = window.jspdf?.jsPDF || window.jsPDF;
+
+                const pdf = new jsPDFClass({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: 'legal'
+                });
+
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+
+                const canvasRatio = canvas.width / canvas.height;
+                const pdfRatio = pdfWidth / pdfHeight;
+
+                let renderWidth = pdfWidth;
+                let renderHeight = pdfHeight;
+
+                if (canvasRatio > pdfRatio) {
+                    renderHeight = pdfWidth / canvasRatio;
+                } else {
+                    renderWidth = pdfHeight * canvasRatio;
+                }
+
+                const x = (pdfWidth - renderWidth) / 2;
+                const y = (pdfHeight - renderHeight) / 2;
+
+                pdf.addImage(imgData, 'PNG', x, y, renderWidth, renderHeight);
+
+                const pdfUrl = URL.createObjectURL(pdf.output('blob'));
+                pdfWindow.location.href = pdfUrl;
+                restoreTemplateStyles(prev);
+
+            element.style.visibility = 'hidden';
+
+      element.style.pointerEvents = 'none';
+            }).catch(err => {
+                console.error(err);
+                pdfWindow.close();
+                restoreTemplateStyles(prev);
+            });
+        }, 300);
+    }
+        window.html2canvas = html2canvas;
+    // 8. FUNGSI PEMBANTU (HELPERS)
+    function formatTanggal(tgl) {
+        if (!tgl) return "-";
+        const d = new Date(tgl);
+        if (isNaN(d.getTime())) return tgl; 
+        return d.toLocaleString("id-ID");
+    }
+
+    function setText(id, value) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = value || "-";
+        }
+    }
+
+    // 9. PAGINATION & UTILITIES DASHBOARD
+    async function deleteRow(key) {
+
+    if (!key) {
+        alert("ID tidak ditemukan");
+        return;
+    }
+
+    if(confirm("Hapus data ini?")){
+
+        const { error } =
+        await db
+          .from('operasional_kapal')
+          .delete()
+          .eq('id', key);
+
+        if(error){
+            alert(error.message);
+            return;
+        }
+
+        alert("Data berhasil dihapus");
+
+        loadTableData();
+    }
+}
+
+    function renderPaginationControls() {
+        const paginationContainer = document.getElementById("paginationControls");
+        if (!paginationContainer) return;
+
+        const totalPages = Math.max(1, Math.ceil(filteredTotal / rowsPerPage));
+        paginationContainer.innerHTML = `
+            <div style="margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 15px;">
+                <button onclick="prevPage()" ${currentPage === 1 ? 'disabled' : ''} class="btn-pagination">Prev</button>
+                <span>Halaman ${currentPage} dari ${totalPages || 1}</span>
+                <button onclick="nextPage()" ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''} class="btn-pagination">Next</button>
+            </div>
+        `;
+    }
+
+    function prevPage() {
+        if (currentPage > 1) {
+            currentPage--;
+            renderTable();
+        }
+    }
+
+    function nextPage() {
+        const totalPages = Math.max(1, Math.ceil(filteredTotal / rowsPerPage));
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderTable();
+        }
+    }
+
+    function filterTable() {
+        currentPage = 1;
+        renderTable();
+    }
+
+    function logout() {
+        sessionStorage.removeItem("isLoggedIn");
+        location.reload();
+    }
+
+    function checkLogin() {
+        const user = document.getElementById("user-input").value;
+        const pass = document.getElementById("pass-input").value;
+        const errorMsg = document.getElementById("error-text");
+
+        if (user === "elsajaya" && pass === "elsajaya123") {
+            document.getElementById("login-overlay").style.display = "none";
+            sessionStorage.setItem("isLoggedIn", "true");
+            loadTableData();
+        } else {
+            if(errorMsg) errorMsg.style.display = "block";
+            alert("Akses Ditolak! Periksa kembali Username dan Password.");
+        }
+    }
+
+    // RUNNING TIMING
+    // RUNNING TIMING - VERSI AMAN (ANTI MACET)
+    window.onload = function() {
+
+    if (typeof loadPDFTemplate === "function") {
+        try {
+            loadPDFTemplate();
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    if (sessionStorage.getItem("isLoggedIn") === "true") {
+
+        document.getElementById("login-overlay")
+        .style.display = "none";
+
+        loadTableData();
+    }
+};
+</script>

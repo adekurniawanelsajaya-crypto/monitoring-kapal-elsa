@@ -1,0 +1,261 @@
+<div id="template-pdf-hidden"
+
+style="
+    position:absolute;
+    left:-99999px;
+    top:-99999px;
+
+    width:297mm;
+
+    opacity:0;
+
+    visibility:hidden;
+
+    pointer-events:none;
+
+    z-index:-99999;
+
+    overflow:hidden;
+
+    font-family:'Times New Roman', serif;
+    color:#000;
+    line-height:1.2;
+    padding:10mm 12mm;
+    box-sizing:border-box;
+    background:#ffffff;
+"
+>
+    
+    <div style="text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 5px;">
+        <div style="font-weight: bold; text-decoration: underline; font-size: 16px; letter-spacing: 0.5px; text-transform: uppercase;">BERITA ACARA RAMPUNG PEKERJAAN</div>
+        <div style="margin-top: 2px; font-style: italic; font-size: 11px; color: #333;">Minutes Of Completion Of Work</div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 11px;">
+        <table style="width: 75%; border-collapse: collapse;">
+            <tr style="vertical-align: top;">
+                <td style="width: 160px; padding: 2px 0;">No.</td>
+                <td style="width: 15px; text-align: center;">:</td>
+                <td style="font-weight: bold;"><span id="pdf-no-bar">(NO bar)</span></td>
+            </tr>
+            <tr style="vertical-align: top;">
+                <td style="padding: 2px 0; line-height: 1.1;">
+                    Sesuai Surat Instruksi Kerja dari<br>
+                    <span style="font-size: 9px; font-style: italic; color: #555;">In accordance with the Job Instructions from</span>
+                </td>
+                <td style="text-align: center;">:</td>
+                <td style="font-weight: bold; text-transform: uppercase;"><span id="pdf-shipper">(shipper)</span></td>
+            </tr>
+            <tr style="vertical-align: top;">
+                <td style="padding: 2px 0;">Nomor / <span style="font-style: italic; font-size: 10px; color: #555;">Number</span></td>
+                <td style="text-align: center;">:</td>
+                <td style="font-weight: bold;"><span id="pdf-no-sik">(no spk)</span></td>
+            </tr>
+            <tr style="vertical-align: top;">
+                <td style="padding: 2px 0;">Tanggal / <span style="font-style: italic; font-size: 10px; color: #555;">Date Of</span></td>
+                <td style="text-align: center;">:</td>
+                <td><span>-</span></td>
+            </tr>
+            <tr style="vertical-align: top;">
+                <td style="padding: 2px 0; line-height: 1.1;">
+                    Pada Hari Ini, Tanggal<br>
+                    <span style="font-size: 9px; font-style: italic; color: #555;">ON THIS DAY, DATE</span>
+                </td>
+                <td style="text-align: center;">:</td>
+                <td style="font-weight: bold;"><span id="pdf-tgl-doc">(tanggal finish)</span></td>
+            </tr>
+        </table>
+        <div style="width: 20%; text-align: right; font-weight: bold; font-size: 11px;">
+            Page: 1 OF 1
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 15px; padding: 4px; border: 1px dashed #bbb; background-color: #fafafa;">
+        <div style="font-size: 11px;">telah dilaksanakan dan dirampungkan pekerjaan tersebut dengan rincian sebagai berikut:</div>
+        <div style="font-size: 10px; font-style: italic; text-decoration: underline; color: #444;">The job has been completed with the following details:</div>
+    </div>
+
+    <div style="display: flex; width: 100%; gap: 20px; margin-bottom: 20px;">
+        
+        <div style="flex: 1; min-width: 0; border-right: 1px solid #ddd; padding-right: 15px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                <tr style="vertical-align: top;">
+                    <td style="width: 15px; font-weight: bold;">1.</td>
+                    <td style="width: 140px; font-weight: bold;">JOB NAME / SERVICES</td>
+                    <td style="width: 10px; text-align: center;">:</td>
+                    <td style="font-weight: bold;">STEVEDORING SERVICES</td>
+                </tr>
+                <tr style="vertical-align: top;">
+                    <td style="font-weight: bold;">2.</td>
+                    <td style="font-weight: bold;">DETAILS / DESCRIPTION OF JOB</td>
+                    <td style="text-align: center;">:</td>
+                    <td></td>
+                </tr>
+            </table>
+
+            <div style="margin-left: 15px; margin-top: 5px;">
+                <div style="font-weight: bold; font-size: 11px; border-bottom: 1px solid #eee; padding-bottom: 2px;">1. Discharging General Cargo</div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 2px;">
+                    <tr>
+                        <td style="width: 100px; padding: 2px 0; color: #333;">- Cargo</td>
+                        <td style="width: 10px; text-align: center;">:</td>
+                        <td style="font-weight: bold; text-transform: uppercase;"><span id="pdf-disch-cargo">-</span></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 2px 0; color: #333;">- Quantity</td>
+                        <td style="text-align: center;">:</td>
+                        <td>
+                            <span id="pdf-disch-qty" style="font-weight: bold;">-</span> <strong>MT</strong>
+                            <span id="pdf-disch-teus" style="font-weight: bold; margin-left: 15px;">0 TEUS</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 2px 0; color: #333;">- Commenced</td>
+                        <td style="text-align: center;">:</td>
+                        <td><span id="pdf-disch-start">-</span></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 2px 0; color: #333;">- Completed</td>
+                        <td style="text-align: center;">:</td>
+                        <td><span id="pdf-disch-finish">-</span></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div style="margin-left: 15px; margin-top: 10px;">
+                <div style="font-weight: bold; font-size: 11px; border-bottom: 1px solid #eee; padding-bottom: 2px;">2. Loading General Cargo</div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 2px;">
+                    <tr>
+                        <td style="width: 100px; padding: 2px 0; color: #333;">- Cargo</td>
+                        <td style="width: 10px; text-align: center;">:</td>
+                        <td style="font-weight: bold; text-transform: uppercase;"><span id="pdf-load-cargo">-</span></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 2px 0; color: #333;">- Quantity</td>
+                        <td style="text-align: center;">:</td>
+                        <td>
+                            <span id="pdf-load-qty" style="font-weight: bold;">-</span> <strong>MT</strong>
+                            <span id="pdf-load-teus" style="font-weight: bold; margin-left: 15px;">TEUS</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 2px 0; color: #333;">- Commenced</td>
+                        <td style="text-align: center;">:</td>
+                        <td><span id="pdf-load-start">-</span></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 2px 0; color: #333;">- Completed</td>
+                        <td style="text-align: center;">:</td>
+                        <td><span id="pdf-load-finish">-</span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                <tr style="vertical-align: top;">
+                    <td style="width: 15px; font-weight: bold;">3.</td>
+                    <td style="width: 140px; font-style: italic; font-weight: bold;">NAME OF VESSEL</td>
+                    <td style="width: 10px; text-align: center;">:</td>
+                    <td style="font-weight: bold; text-transform: uppercase;"><span id="pdf-vessel">MV. FREDERIKKE</span></td>
+                </tr>
+                <tr style="vertical-align: top;">
+                    <td style="font-weight: bold;">4.</td>
+                    <td style="font-style: italic; font-weight: bold;">SHIP AGENCY</td>
+                    <td style="text-align: center;">:</td>
+                    <td style="font-weight: bold; text-transform: uppercase;"><span id="pdf-agency">PT. BEN LINE AGENCIES</span></td>
+                </tr>
+                <tr style="vertical-align: top;">
+                    <td style="font-weight: bold;">5.</td>
+                    <td style="font-style: italic; font-weight: bold;">LOADING / DISC. PORT</td>
+                    <td style="text-align: center;">:</td>
+                    <td style="font-weight: bold; text-transform: uppercase;">PELABUHAN LOKTUAN, BONTANG</td>
+                </tr>
+                <tr style="vertical-align: top;">
+                    <td style="font-weight: bold;">6.</td>
+                    <td style="font-style: italic; font-weight: bold;">FROM / TO PORT</td>
+                    <td style="text-align: center;">:</td>
+                    <td style="font-weight: bold; text-transform: uppercase;">
+                        <span id="pdf-from">BALIKPAPAN</span> <span style="margin: 0 4px; font-weight: normal; font-size: 10px;">TO</span> <span id="pdf-to">SUBIC BAY</span>
+                    </td>
+                </tr>
+                <tr style="vertical-align: top;">
+                    <td style="font-weight: bold;">7.</td>
+                    <td style="font-style: italic; font-weight: bold;">STATUS OF JOB</td>
+                    <td style="text-align: center;">:</td>
+                    <td style="font-weight: bold; text-transform: uppercase; color: #000;">PEKERJAAN SELESAI (FINISH 100%)</td>
+                </tr>
+            </table>
+
+            <div style="font-size: 11px; line-height: 1.3; margin-top: 25px; padding: 5px; text-align: justify;">
+                <div>
+                    Demikian Berita Acara Rampung Pekerjaan ini dibuat, untuk dipergunakan sebagaimana mestinya dan Pekerjaan telah diselesaikan dengan baik.
+                </div>
+                <div style="font-style: italic; font-size: 10px; margin-top: 3px; color: #444;">
+                    The Minutes of Completion of Work has been made for proper use and the work has been completed well.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div style="margin-top: 30px; margin-bottom: 20px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed;">
+            <tr>
+                <td style="width: 33.33%; text-align: center; vertical-align: top;">
+                    <div style="font-size: 11px;">Disetujui oleh / <span style="font-style: italic; color: #333;">Approved By,</span></div>
+                    <strong style="font-size: 11px;">(SHIPPER)</strong>
+                    
+                    <div style="height: 55px;"></div>
+
+                    <div style="font-weight: bold; text-transform: uppercase; margin-bottom: 2px; border-top: 1px solid #000; padding-top: 2px; display: inline-block; width: 80%;">
+                        CAPT. FUADI SUSPA
+                    </div>
+                    <div style="font-size: 10px; color: #444;">
+                        Distribution Specialist
+                    </div>
+                </td>
+
+                <td style="width: 33.33%; text-align: center; vertical-align: top;">
+                    <div style="font-size: 11px;">Mengetahui / <span style="font-style: italic; color: #333;">Known,</span></div>
+                    <strong style="font-size: 11px;">(<span id="pdf-vessel-sign">FREDERIKKE</span>)</strong>
+                    
+                    <div style="height: 55px;"></div>
+
+                    <div style="font-style: italic; font-weight: bold; font-size: 10px; color: #111; border-top: 1px solid #000; padding-top: 2px; display: inline-block; width: 80%;">
+                        Master / Ch. Of
+                    </div>
+                </td>
+
+                <td style="width: 33.33%; text-align: center; vertical-align: top;">
+                    <div style="font-size: 11px;">Disiapkan Oleh / <span style="font-style: italic; color: #333;">Prepared By,</span></div>
+                    <strong style="font-size: 11px;">PT PBM ELSA JAYA</strong>
+                    
+                    <div style="height: 55px;"></div>
+
+                    <div style="font-weight: bold; text-transform: uppercase; margin-bottom: 2px; border-top: 1px solid #000; padding-top: 2px; display: inline-block; width: 80%;">
+                        ADE KURNIAWAN.
+                    </div>
+                    <div style="font-size: 10px; color: #444;">
+                        Manager Operasi
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div style="color: #444; font-size: 8px; border-top: 1px solid #000; padding-top: 4px; margin-top: 10px;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td style="text-align: left; font-size: 8px; color: #555;">
+                    Dokumen ini dicetak secara sistem dan sah tanpa tanda tangan basah.
+                </td>
+                <td style="text-align: right; font-size: 8px; color: #555;">
+                    Printed on: 28 Mei 2025 16:45
+                </td>
+            </tr>
+        </table>
+    </div>
+
+</div>
